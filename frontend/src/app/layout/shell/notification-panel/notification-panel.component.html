@@ -1,0 +1,63 @@
+<div class="nx-notification-panel" id="nx-notification-panel" role="dialog" aria-label="Notifications preview">
+  <!-- Header -->
+  <header class="nx-panel-header">
+    <div class="nx-panel-heading">
+      <h2 class="nx-panel-title">Notifications</h2>
+      @if (unreadCount() > 0) {
+        <span class="nx-panel-count nx-mono" aria-label="{{ unreadCount() }} unread">{{ unreadCount() }}</span>
+      }
+    </div>
+    @if (unreadCount() > 0) {
+      <button type="button" class="nx-panel-mark-all" (click)="markAll()" [disabled]="markAllBusy()">
+        Mark all as read
+      </button>
+    }
+  </header>
+
+  <!-- Body -->
+  <div class="nx-panel-body">
+    @if (loading()) {
+      <div class="nx-panel-skeleton" aria-hidden="true">
+        @for (row of skeletonRows; track row) {
+          <span class="nx-skeleton-line"></span>
+        }
+      </div>
+    } @else if (error()) {
+      <div class="nx-panel-error">
+        <p class="nx-panel-error-text">{{ error()!.message }}</p>
+        <button type="button" class="nx-panel-retry" (click)="refresh()">Retry</button>
+      </div>
+    } @else if (notifications().length === 0) {
+      <app-nx-empty-state
+        icon="notifications-outline"
+        title="No notifications"
+        description="You're all caught up."
+      ></app-nx-empty-state>
+    } @else {
+      <ul class="nx-panel-list">
+        @for (item of notifications(); track item.id) {
+          <li class="nx-panel-li">
+            <button type="button" class="nx-panel-item" [class.is-unread]="!item.is_read" (click)="onItemClick(item)">
+              <span class="nx-panel-charm" [class]="'tone-' + meta(item.type).tone">
+                <ion-icon [name]="meta(item.type).icon" aria-hidden="true"></ion-icon>
+              </span>
+              <span class="nx-panel-item-body">
+                <span class="nx-panel-item-title">{{ item.title }}</span>
+                <span class="nx-panel-item-message">{{ item.message }}</span>
+                <span class="nx-panel-item-time nx-mono">{{ time(item.created_at) }}</span>
+              </span>
+              @if (!item.is_read) {
+                <span class="nx-panel-dot" aria-hidden="true"></span>
+              }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+  </div>
+
+  <!-- Footer -->
+  <footer class="nx-panel-footer">
+    <app-nx-button variant="ghost" size="sm" (nxClick)="viewAll()">View all notifications</app-nx-button>
+  </footer>
+</div>

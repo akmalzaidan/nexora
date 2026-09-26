@@ -1,0 +1,239 @@
+// ═══════════════════════════════════════════════════════════════════
+// Shell Component Styles
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+.nx-shell {
+  min-height: 100vh;
+  background: var(--nx-bg);
+  display: flex;
+}
+
+// ─── Main Area ───────────────────────────────────────────────────────
+
+.nx-main {
+  flex: 1;
+  margin-left: $nx-sidebar-width;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  transition: margin-left $nx-transition-normal;
+
+  @media (max-width: 1023px) {
+    margin-left: $nx-sidebar-width-collapsed;
+  }
+}
+
+// ─── Header ──────────────────────────────────────────────────────────
+
+.nx-header {
+  position: sticky;
+  top: 0;
+  z-index: $nx-z-sticky;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: $nx-header-height;
+  padding: 0 $nx-space-6;
+  background: var(--nx-surface);
+  border-bottom: 1px solid var(--nx-border-subtle);
+}
+
+.nx-header-left {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-4;
+}
+
+.nx-header-title {
+  font-size: $nx-font-size-md;
+  font-weight: $nx-font-weight-semibold;
+  color: var(--nx-text);
+  margin: 0;
+}
+
+.nx-header-right {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+}
+
+// Search in header
+.nx-header-search {
+  min-width: 280px;
+}
+
+.nx-search-shortcut {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-1;
+  background: none;
+  border: none;
+  cursor: default;
+  padding: 0;
+
+  .nx-kbd {
+    font-size: 10px;
+  }
+}
+
+// Theme toggle
+.nx-header-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-md;
+  cursor: pointer;
+  color: var(--nx-text-secondary);
+  transition: background $nx-transition-fast, color $nx-transition-fast;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--nx-surface-level-3) 50%, transparent);
+    color: var(--nx-text);
+  }
+
+  &:active {
+    transform: scale(0.96);
+  }
+}
+
+// User
+.nx-header-user {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  padding-left: $nx-space-3;
+  border-left: 1px solid var(--nx-border-subtle);
+}
+
+// Notifications bell
+.nx-notification-area {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.nx-notification-bell {
+  position: relative;
+
+  &.is-unread ion-icon {
+    color: var(--nx-accent);
+  }
+}
+
+.nx-notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: $nx-radius-full;
+  background: var(--nx-accent);
+  color: var(--nx-bg);
+  font-size: 9px;
+  font-weight: $nx-font-weight-semibold;
+  line-height: 16px;
+  text-align: center;
+  border: 1px solid var(--nx-surface);
+}
+
+.nx-header-user-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.nx-header-user-name {
+  font-size: $nx-font-size-xs;
+  font-weight: $nx-font-weight-semibold;
+  color: var(--nx-text);
+}
+
+.nx-header-user-role {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nx-text-muted);
+}
+
+.nx-header-logout {
+  border-color: transparent;
+}
+
+.nx-header-user-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: $nx-radius-full;
+  background: var(--nx-accent);
+  color: var(--nx-bg);
+  font-size: $nx-font-size-sm;
+  font-weight: $nx-font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ─── Content ─────────────────────────────────────────────────────────
+
+.nx-content {
+  flex: 1;
+  padding: $nx-space-6;
+  max-width: $nx-max-content-width;
+  width: 100%;
+  margin: 0 auto;
+
+  @media (max-width: 767px) {
+    padding: $nx-space-4;
+  }
+}
+
+// ─── Tablet sidebar toggle ───────────────────────────────────────────
+
+.nx-tablet-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: $nx-space-4;
+  left: $nx-space-4;
+  z-index: $nx-z-sticky;
+  width: 36px;
+  height: 36px;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-md;
+  cursor: pointer;
+  color: var(--nx-text-secondary);
+  align-items: center;
+  justify-content: center;
+  box-shadow: $nx-shadow-md;
+
+  ion-icon {
+    font-size: 20px;
+  }
+
+  &:hover {
+    background: var(--nx-surface-elevated);
+  }
+
+  @media (max-width: 1023px) {
+    display: flex;
+  }
+}
+
+// ─── Mobile: shift main content up for bottom nav ───────────────────
+
+@media (max-width: 767px) {
+  .nx-main {
+    padding-bottom: 64px; // space for bottom nav
+  }
+}

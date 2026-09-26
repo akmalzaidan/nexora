@@ -1,0 +1,628 @@
+<div class="nx-rp">
+  <header class="nx-rp-header">
+    <div class="nx-rp-heading">
+      <h1 class="nx-rp-title">Reports</h1>
+      <p class="nx-rp-sub">Operational data across assets, inventory, requests, and maintenance.</p>
+    </div>
+    <div class="nx-rp-actions">
+      <span class="nx-rp-context" [attr.data-period]="appliedPeriod() ? 'period' : 'current'">
+        {{ periodLabel() }}
+      </span>
+      <app-nx-button
+        variant="secondary"
+        size="sm"
+        ariaLabel="Refresh this report"
+        [disabled]="busy()"
+        (nxClick)="refresh()"
+      >Refresh</app-nx-button>
+      <app-nx-button
+        variant="secondary"
+        size="sm"
+        [ariaLabel]="periodOpen() ? 'Hide period controls' : 'Report period'"
+        (nxClick)="togglePeriod()"
+      >{{ periodOpen() ? 'Hide period' : 'Period' }}</app-nx-button>
+    </div>
+  </header>
+
+  @if (periodOpen()) {
+    <section class="nx-rp-period" id="rp-period" aria-label="Report period">
+      <div class="nx-rp-period-fields">
+        <label class="nx-rp-field" for="rp-from">
+          <span class="nx-rp-field-label">From</span>
+          <input
+            id="rp-from"
+            class="nx-rp-input"
+            type="date"
+            [value]="fromDraft()"
+            [disabled]="!periodEnabled()"
+            (input)="onFromInput($any($event.target).value)"
+          />
+        </label>
+        <label class="nx-rp-field" for="rp-to">
+          <span class="nx-rp-field-label">To</span>
+          <input
+            id="rp-to"
+            class="nx-rp-input"
+            type="date"
+            [value]="toDraft()"
+            [disabled]="!periodEnabled()"
+            (input)="onToInput($any($event.target).value)"
+          />
+        </label>
+        <p class="nx-rp-field-hint">
+          Inclusive days, up to {{ maxPeriodDays }}. Leave both empty for current state.
+        </p>
+      </div>
+      @if (!periodEnabled()) {
+        <p class="nx-rp-hint">
+          The overview is an undated snapshot. Open Assets, Inventory, Requests, or Maintenance to
+          analyse a period.
+        </p>
+      }
+      @if (periodError(); as message) {
+        <p class="nx-rp-error" role="alert">{{ message }}</p>
+      }
+      <div class="nx-rp-period-actions">
+        <app-nx-button variant="ghost" size="sm" [disabled]="!appliedPeriod()" (nxClick)="clearPeriod()">
+          Clear
+        </app-nx-button>
+        <app-nx-button variant="primary" size="sm" [disabled]="!periodEnabled()" (nxClick)="applyPeriod()">
+          Apply
+        </app-nx-button>
+      </div>
+    </section>
+  }
+
+  <div class="nx-rp-tabs" role="tablist" aria-label="Report type">
+    @for (tab of tabs; track tab.key) {
+      <button
+        type="button"
+        role="tab"
+        class="nx-rp-tab"
+        [class.active]="activeTab() === tab.key"
+        [id]="'rp-tab-' + tab.key"
+        [attr.data-report-tab]="tab.key"
+        [attr.aria-selected]="activeTab() === tab.key"
+        [attr.aria-controls]="'rp-panel-' + tab.key"
+        [tabIndex]="activeTab() === tab.key ? 0 : -1"
+        (click)="selectTab(tab.key)"
+        (keydown)="onTabKeydown($event, tab.key)"
+      >{{ tab.label }}</button>
+    }
+  </div>
+
+  <div
+    class="nx-rp-body"
+    role="tabpanel"
+    [id]="'rp-panel-' + activeTab()"
+    [attr.aria-labelledby]="'rp-tab-' + activeTab()"
+    tabindex="0"
+  >
+    @switch (activeTab()) {
+      @case ('overview') {
+        @if (overview().loading) {
+          <app-nx-loading-state mode="skeleton" label="Loading overview" />
+        } @else if (overview().error; as error) {
+          @if (error.accessDenied) {
+            <app-unauthorized />
+          } @else {
+            <app-nx-error-state
+              title="Overview unavailable"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="retry('overview')"
+            />
+          }
+        } @else if (overview().data; as data) {
+          @if (isEmptyOverview(data)) {
+            <app-nx-empty-state
+              title="No operational data yet"
+              description="Reports appear here once assets, stock, requests, or maintenance activity exists."
+            />
+          } @else {
+            <div class="nx-rp-stack">
+              <p class="nx-rp-generated">Snapshot generated {{ generatedAt(data.generated_at) }}</p>
+
+              <div class="nx-rp-metrics">
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Total assets</span>
+                  <span class="nx-rp-metric-value">{{ count(data.assets.total) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Stock quantity</span>
+                  <span class="nx-rp-metric-value">{{ count(data.inventory.stock_quantity) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Total requests</span>
+                  <span class="nx-rp-metric-value">{{ count(data.tickets.total) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Maintenance requests</span>
+                  <span class="nx-rp-metric-value">{{ count(data.maintenance.total) }}</span>
+                </div>
+              </div>
+
+              <div class="nx-rp-grid">
+                <app-nx-panel title="Asset status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Assets by status"
+                    [rows]="statusRows(data.assets.by_status)"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Request status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Requests by status"
+                    [rows]="statusRows(data.tickets.by_status)"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Maintenance request status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Maintenance requests by status"
+                    [rows]="statusRows(data.maintenance.by_status)"
+                    emptyText="No maintenance requests recorded"
+                  />
+                </app-nx-panel>
+              </div>
+
+              <p class="nx-rp-note">
+                Overview figures are a current-state snapshot. Open a module report to see activity
+                for a chosen period.
+              </p>
+            </div>
+          }
+        }
+      }
+
+      @case ('assets') {
+        @if (assets().loading) {
+          <app-nx-loading-state mode="skeleton" label="Loading asset report" />
+        } @else if (assets().error; as error) {
+          @if (error.accessDenied) {
+            <app-unauthorized />
+          } @else {
+            <app-nx-error-state
+              title="Asset report unavailable"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="retry('assets')"
+            />
+          }
+        } @else if (assets().data; as data) {
+          @if (isEmptyAssets(data)) {
+            <app-nx-empty-state
+              title="No assets recorded"
+              description="Asset totals and breakdowns appear once assets exist."
+            />
+          } @else {
+            <div class="nx-rp-stack">
+              <div class="nx-rp-metrics">
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Total assets</span>
+                  <span class="nx-rp-metric-value">{{ count(data.current.total) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Assigned</span>
+                  <span class="nx-rp-metric-value">{{ count(data.current.assigned_count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Unassigned</span>
+                  <span class="nx-rp-metric-value">{{ count(data.current.unassigned_count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Without location</span>
+                  <span class="nx-rp-metric-value">{{ count(data.current.without_location_count) }}</span>
+                </div>
+              </div>
+
+              <div class="nx-rp-grid">
+                <app-nx-panel title="Asset status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Assets by status"
+                    [rows]="statusRows(data.current.by_status)"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Assignment status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Assignment records by status"
+                    [rows]="statusRows(data.assignments.by_status)"
+                    emptyText="No assignment records"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Assets by category">
+                  <app-report-bar-list
+                    labelHeading="Category"
+                    title="Assets by category"
+                    [rows]="categoryRows(data.current.by_category)"
+                    emptyText="No categorised assets"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Assets by location">
+                  <app-report-bar-list
+                    labelHeading="Location"
+                    title="Assets by location"
+                    [rows]="locationRows(data.current.by_location)"
+                    emptyText="No assets are linked to a location"
+                  />
+                </app-nx-panel>
+              </div>
+
+              @if (data.period; as period) {
+                <app-nx-panel [title]="'Period activity · ' + formatDay(period.from) + ' – ' + formatDay(period.to)">
+                  <div class="nx-rp-metrics">
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Assets created</span>
+                      <span class="nx-rp-metric-value">{{ count(period.assets_created) }}</span>
+                    </div>
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Handed over</span>
+                      <span class="nx-rp-metric-value">{{ count(period.assignments_assigned) }}</span>
+                    </div>
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Returned</span>
+                      <span class="nx-rp-metric-value">{{ count(period.assignments_returned) }}</span>
+                    </div>
+                  </div>
+                </app-nx-panel>
+              } @else {
+                <p class="nx-rp-note">
+                  Current state only. Choose a period to count assets created and handovers.
+                </p>
+              }
+            </div>
+          }
+        }
+      }
+
+      @case ('inventory') {
+        @if (inventory().loading) {
+          <app-nx-loading-state mode="skeleton" label="Loading inventory report" />
+        } @else if (inventory().error; as error) {
+          @if (error.accessDenied) {
+            <app-unauthorized />
+          } @else {
+            <app-nx-error-state
+              title="Inventory report unavailable"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="retry('inventory')"
+            />
+          }
+        } @else if (inventory().data; as data) {
+          @if (isEmptyInventory(data)) {
+            <app-nx-empty-state
+              title="No inventory recorded"
+              description="Catalog counts and stock balances appear once items and stock movements exist."
+            />
+          } @else {
+            <div class="nx-rp-stack">
+              <div class="nx-rp-metrics">
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Items</span>
+                  <span class="nx-rp-metric-value">{{ count(data.items.count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Item categories</span>
+                  <span class="nx-rp-metric-value">{{ count(data.items.category_count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Warehouses</span>
+                  <span class="nx-rp-metric-value">{{ count(data.warehouses.count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Current stock quantity</span>
+                  <span class="nx-rp-metric-value">{{ count(data.current_stock.total_quantity) }}</span>
+                </div>
+              </div>
+
+              <div class="nx-rp-grid">
+                <app-nx-panel title="Stock by warehouse">
+                  <app-report-bar-list
+                    labelHeading="Warehouse"
+                    countHeading="Quantity"
+                    title="Current stock quantity by warehouse"
+                    [rows]="warehouseRows(data.current_stock.by_warehouse)"
+                    emptyText="No stock recorded"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Stock by item">
+                  <app-report-bar-list
+                    labelHeading="Item"
+                    countHeading="Quantity"
+                    title="Current stock quantity by item, top ranked"
+                    [rows]="itemRows(data.current_stock.by_item.items)"
+                    emptyText="No stock recorded"
+                  />
+                  <p class="nx-rp-note">
+                    Top {{ data.current_stock.by_item.limit }} items by quantity; the report returns
+                    {{ data.current_stock.by_item.items.length }} of them.
+                  </p>
+                </app-nx-panel>
+              </div>
+
+              @if (data.period; as period) {
+                <app-nx-panel [title]="'Period activity · ' + formatDay(period.from) + ' – ' + formatDay(period.to)">
+                  <div class="nx-rp-metrics">
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Stock movements</span>
+                      <span class="nx-rp-metric-value">{{ count(period.movement_count) }}</span>
+                    </div>
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Stock in total</span>
+                      <span class="nx-rp-metric-value">{{ count(period.stock_in_total) }}</span>
+                    </div>
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Stock out total</span>
+                      <span class="nx-rp-metric-value">{{ count(period.stock_out_total) }}</span>
+                    </div>
+                  </div>
+                  <p class="nx-rp-note">
+                    Movement totals are period activity. Current stock above stays the undated
+                    balance across the whole journal.
+                  </p>
+                </app-nx-panel>
+              } @else {
+                <p class="nx-rp-note">
+                  Current state only. Choose a period to count stock movements in and out.
+                </p>
+              }
+            </div>
+          }
+        }
+      }
+
+      @case ('requests') {
+        @if (requests().loading) {
+          <app-nx-loading-state mode="skeleton" label="Loading request report" />
+        } @else if (requests().error; as error) {
+          @if (error.accessDenied) {
+            <app-unauthorized />
+          } @else {
+            <app-nx-error-state
+              title="Request report unavailable"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="retry('requests')"
+            />
+          }
+        } @else if (requests().data; as data) {
+          @if (isEmptyRequests(data)) {
+            <app-nx-empty-state
+              title="No requests recorded"
+              description="Request totals and breakdowns appear once helpdesk requests exist."
+            />
+          } @else {
+            <div class="nx-rp-stack">
+              <div class="nx-rp-metrics">
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Total requests</span>
+                  <span class="nx-rp-metric-value">{{ count(data.current.total) }}</span>
+                </div>
+                @if (data.period; as period) {
+                  <div class="nx-rp-metric">
+                    <span class="nx-rp-metric-label">Created in period</span>
+                    <span class="nx-rp-metric-value">{{ count(period.created) }}</span>
+                  </div>
+                }
+              </div>
+
+              <div class="nx-rp-grid">
+                <app-nx-panel title="Request status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Requests by status"
+                    [rows]="statusRows(data.current.by_status)"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Request priority">
+                  <app-report-bar-list
+                    labelHeading="Priority"
+                    title="Requests by priority"
+                    [rows]="priorityRows(data.current.by_priority)"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Requests by category">
+                  <app-report-bar-list
+                    labelHeading="Category"
+                    title="Requests by category"
+                    [rows]="categoryRows(data.current.by_category)"
+                    emptyText="No categorised requests"
+                  />
+                  <p class="nx-rp-note">
+                    Requests without a category count towards the total but not towards this
+                    breakdown.
+                  </p>
+                </app-nx-panel>
+              </div>
+
+              @if (data.period; as period) {
+                <app-nx-panel [title]="'Requests created · ' + formatDay(period.from) + ' – ' + formatDay(period.to)">
+                  <app-report-trend
+                    title="Daily requests created"
+                    [note]="period.created.toLocaleString() + ' created in this period'"
+                    [buckets]="period.trend"
+                  />
+                </app-nx-panel>
+              } @else {
+                <p class="nx-rp-note">
+                  Current state only. Choose a period to see requests created and their daily
+                  trend.
+                </p>
+              }
+            </div>
+          }
+        }
+      }
+
+      @case ('maintenance') {
+        @if (maintenance().loading) {
+          <app-nx-loading-state mode="skeleton" label="Loading maintenance report" />
+        } @else if (maintenance().error; as error) {
+          @if (error.accessDenied) {
+            <app-unauthorized />
+          } @else {
+            <app-nx-error-state
+              title="Maintenance report unavailable"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="retry('maintenance')"
+            />
+          }
+        } @else if (maintenance().data; as data) {
+          @if (isEmptyMaintenance(data)) {
+            <app-nx-empty-state
+              title="No maintenance recorded"
+              description="Request, record, and parts figures appear once maintenance activity exists."
+            />
+          } @else {
+            <div class="nx-rp-stack">
+              <div class="nx-rp-metrics">
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Maintenance requests</span>
+                  <span class="nx-rp-metric-value">{{ count(data.requests.total) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Completed records</span>
+                  <span class="nx-rp-metric-value">{{ count(data.records.count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Records with cost</span>
+                  <span class="nx-rp-metric-value">{{ count(data.records.costed_count) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Total recorded cost</span>
+                  <span class="nx-rp-metric-value">{{ cost(data.records.total_cost) }}</span>
+                </div>
+                <div class="nx-rp-metric">
+                  <span class="nx-rp-metric-label">Average recorded cost</span>
+                  <span class="nx-rp-metric-value">{{ cost(data.records.average_cost) }}</span>
+                </div>
+              </div>
+
+              @if (!hasAverageCost(data.records.average_cost)) {
+                <p class="nx-rp-note">
+                  No maintenance record carries a cost, so no average exists. This is missing data,
+                  not a cost of zero.
+                </p>
+              }
+
+              <div class="nx-rp-grid">
+                <app-nx-panel title="Request status">
+                  <app-report-bar-list
+                    labelHeading="Status"
+                    title="Maintenance requests by status"
+                    [rows]="statusRows(data.requests.by_status)"
+                  />
+                </app-nx-panel>
+                <app-nx-panel title="Request priority">
+                  <app-report-bar-list
+                    labelHeading="Priority"
+                    title="Maintenance requests by priority"
+                    [rows]="priorityRows(data.requests.by_priority)"
+                  />
+                </app-nx-panel>
+              </div>
+
+              <div class="nx-rp-grid">
+                <app-nx-panel title="Parts recorded">
+                  <div class="nx-rp-table-wrap">
+                    <table class="nx-rp-table">
+                      <caption class="nx-rp-sr-only">
+                        Parts recorded on maintenance, top {{ data.parts.top_items.limit }} by quantity
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">SKU</th>
+                          <th scope="col">Item</th>
+                          <th scope="col" class="nx-rp-num">Quantity</th>
+                          <th scope="col" class="nx-rp-num">Times recorded</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (item of data.parts.top_items.items; track item.item_id) {
+                          <tr>
+                            <td class="nx-rp-mono">{{ item.sku }}</td>
+                            <td>{{ item.label }}</td>
+                            <td class="nx-rp-num">{{ count(item.quantity) }}</td>
+                            <td class="nx-rp-num">{{ count(item.usage_count) }}</td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td class="nx-rp-empty" colspan="4">No parts recorded</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="nx-rp-note">
+                    {{ count(data.parts.usage_count) }} parts recorded in total, top
+                    {{ data.parts.top_items.limit }} shown. Recording a part is a trace only — it
+                    does not move stock.
+                  </p>
+                </app-nx-panel>
+
+                <app-nx-panel title="Requests by asset">
+                  <div class="nx-rp-table-wrap">
+                    <table class="nx-rp-table">
+                      <caption class="nx-rp-sr-only">
+                        Maintenance requests per asset, top {{ data.by_asset.limit }} by request count
+                      </caption>
+                      <thead>
+                        <tr>
+                          <th scope="col">Code</th>
+                          <th scope="col">Asset</th>
+                          <th scope="col" class="nx-rp-num">Requests</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (asset of data.by_asset.items; track asset.asset_id) {
+                          <tr>
+                            <td class="nx-rp-mono">{{ asset.asset_code }}</td>
+                            <td>{{ asset.asset_name }}</td>
+                            <td class="nx-rp-num">{{ count(asset.count) }}</td>
+                          </tr>
+                        } @empty {
+                          <tr>
+                            <td class="nx-rp-empty" colspan="3">No assets linked to maintenance requests</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                  <p class="nx-rp-note">Top {{ data.by_asset.limit }} assets by request count.</p>
+                </app-nx-panel>
+              </div>
+
+              @if (data.period; as period) {
+                <app-nx-panel [title]="'Period activity · ' + formatDay(period.from) + ' – ' + formatDay(period.to)">
+                  <div class="nx-rp-metrics">
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Requested</span>
+                      <span class="nx-rp-metric-value">{{ count(period.requested) }}</span>
+                    </div>
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Approved</span>
+                      <span class="nx-rp-metric-value">{{ count(period.approved) }}</span>
+                    </div>
+                    <div class="nx-rp-metric">
+                      <span class="nx-rp-metric-label">Completed</span>
+                      <span class="nx-rp-metric-value">{{ count(period.completed) }}</span>
+                    </div>
+                  </div>
+                </app-nx-panel>
+              } @else {
+                <p class="nx-rp-note">
+                  Current state only. Choose a period to count requests by lifecycle date.
+                </p>
+              }
+            </div>
+          }
+        }
+      }
+    }
+  </div>
+</div>

@@ -1,0 +1,7 @@
+{
+  "name": "nexora",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular"
+}

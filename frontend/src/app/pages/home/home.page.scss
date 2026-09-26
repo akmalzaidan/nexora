@@ -1,0 +1,528 @@
+@use 'design-tokens' as *;
+
+/*
+  Command Center — Operational Intelligence.
+
+  A dense, quiet operations surface: numbers first, one accent for state, no
+  gradients, no decoration competing with the data. Everything is expressed in
+  NEXORA's existing tokens so the workspace follows the active theme (dark or
+  light) with no theme-specific rules of its own.
+*/
+
+:host {
+  display: block;
+  background: var(--nx-bg);
+  color: var(--nx-text);
+}
+
+.nx-cc {
+  display: flex;
+  flex-direction: column;
+  gap: $nx-space-8;
+  padding: $nx-space-10;
+  min-width: 0;
+}
+
+/* ═══ Header ═══════════════════════════════════════════════════════════════ */
+
+.nx-cc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: $nx-space-8;
+  flex-wrap: wrap;
+  padding-bottom: $nx-space-8;
+  border-bottom: 1px solid var(--nx-border);
+}
+
+.nx-cc-heading { min-width: 0; }
+
+.nx-cc-title {
+  margin: 0;
+  font-size: $nx-font-size-2xl;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.nx-cc-sub {
+  margin: $nx-space-1 0 0;
+  font-size: $nx-font-size-sm;
+  color: var(--nx-text-muted);
+}
+
+.nx-cc-sub-user { color: var(--nx-text-secondary); }
+
+.nx-cc-header-actions {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-6;
+  flex-wrap: wrap;
+}
+
+/*
+  The timestamp is the page's only freshness claim, so it is deliberately
+  quiet: the reader should be able to see how old the numbers are without the
+  interface announcing it.
+*/
+.nx-cc-generated {
+  display: flex;
+  align-items: baseline;
+  gap: $nx-space-2;
+  margin: 0;
+  padding: $nx-space-2 $nx-space-4;
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-secondary);
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-sm;
+  white-space: nowrap;
+}
+
+.nx-cc-generated-label {
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nx-text-muted);
+}
+
+/* ═══ Section heading ══════════════════════════════════════════════════════ */
+
+.nx-cc-section-title,
+.nx-cc-stat-group-title,
+.nx-cc-queue-title {
+  margin: 0;
+  font-size: $nx-font-size-xs;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nx-text-muted);
+}
+
+/* ═══ Access restricted ════════════════════════════════════════════════════ */
+
+.nx-cc-restricted {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $nx-space-4;
+  padding: $nx-space-24 $nx-space-8;
+  text-align: center;
+}
+
+.nx-cc-restricted-title {
+  margin: 0;
+  font-size: $nx-font-size-sm;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.nx-cc-restricted-message {
+  margin: 0;
+  max-width: 46ch;
+  font-size: $nx-font-size-base;
+  line-height: 1.5;
+  color: var(--nx-text-muted);
+}
+
+.nx-cc-restricted-actions { display: flex; gap: $nx-space-3; flex-wrap: wrap; }
+
+/* ═══ Current state ════════════════════════════════════════════════════════ */
+
+/*
+  Counters read as one dense band rather than five large cards: an operator
+  scans the numbers, not the containers. Each group is independently
+  permission-scoped, so the grid flows around whatever the API returned.
+*/
+.nx-cc-snapshot {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $nx-space-6;
+}
+
+.nx-cc-stat-group {
+  display: flex;
+  flex-direction: column;
+  gap: $nx-space-4;
+  padding: $nx-space-6;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-lg;
+  min-width: 0;
+}
+
+.nx-cc-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $nx-space-4 $nx-space-6;
+  margin: 0;
+}
+
+.nx-cc-metric { min-width: 0; }
+
+/*
+  dt before dd, and the value on its own line: a label is never a prefix of a
+  number, so no value has to be read inside a run of text.
+*/
+.nx-cc-metric-label {
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nx-cc-metric-value {
+  margin: $nx-space-1 0 0;
+  font-size: $nx-font-size-xl;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--nx-text);
+  /* Tabular figures so a column of counters stays aligned while digits change. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══ Two-column body ══════════════════════════════════════════════════════ */
+
+.nx-cc-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: $nx-space-8;
+  align-items: start;
+}
+
+.nx-cc-panel { min-width: 0; }
+
+.nx-cc-panel-note {
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-muted);
+  white-space: nowrap;
+}
+
+.nx-cc-panel-empty,
+.nx-cc-queue-empty {
+  margin: 0;
+  padding: $nx-space-4 0;
+  font-size: $nx-font-size-sm;
+  color: var(--nx-text-muted);
+}
+
+/* ═══ Queues ═══════════════════════════════════════════════════════════════ */
+
+.nx-cc-queue + .nx-cc-queue {
+  margin-top: $nx-space-8;
+  padding-top: $nx-space-8;
+  border-top: 1px solid var(--nx-border-subtle);
+}
+
+.nx-cc-queue-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $nx-space-4;
+  margin-bottom: $nx-space-3;
+}
+
+/* The count is the reason this queue is on the page, so it carries the accent. */
+.nx-cc-queue-count {
+  font-size: $nx-font-size-sm;
+  font-weight: 600;
+  color: var(--nx-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.nx-cc-rows,
+.nx-cc-events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.nx-cc-row-item + .nx-cc-row-item {
+  border-top: 1px solid var(--nx-border-subtle);
+}
+
+/*
+  A row is either a real <button> or a static reference. Both share this
+  layout, so clickability is signalled by the hover/focus affordance and the
+  chevron rather than by a different-looking card.
+*/
+.nx-cc-row {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-4;
+  width: 100%;
+  padding: $nx-space-4;
+  background: transparent;
+  border: 0;
+  border-radius: $nx-radius-sm;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.nx-cc-row-link {
+  cursor: pointer;
+  transition: background-color $nx-transition-fast;
+}
+
+.nx-cc-row-link:hover { background: var(--nx-surface-elevated); }
+.nx-cc-row-link:focus-visible { outline: none; box-shadow: $nx-shadow-focus; }
+
+.nx-cc-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: $nx-space-1;
+  min-width: 0;
+  flex: 1;
+}
+
+.nx-cc-row-title {
+  font-size: $nx-font-size-base;
+  color: var(--nx-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nx-cc-row-meta {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  flex-wrap: wrap;
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-muted);
+}
+
+.nx-cc-row-ref { color: var(--nx-text-secondary); }
+
+.nx-cc-row-status {
+  padding: 1px $nx-space-2;
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-full;
+  background: var(--nx-surface-level-1);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: $nx-font-size-xs;
+}
+
+.nx-cc-row-chevron { flex: none; color: var(--nx-text-muted); font-size: 14px; }
+
+/* Honest truncation: the list is bounded, the backlog is not. */
+.nx-cc-queue-more {
+  margin: $nx-space-3 0 0;
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-muted);
+}
+
+/* ═══ Activity ═════════════════════════════════════════════════════════════ */
+
+.nx-cc-event {
+  display: flex;
+  align-items: flex-start;
+  gap: $nx-space-4;
+  padding: $nx-space-4 0;
+}
+
+.nx-cc-event + .nx-cc-event { border-top: 1px solid var(--nx-border-subtle); }
+
+.nx-cc-event-icon {
+  flex: none;
+  margin-top: 2px;
+  font-size: 15px;
+  color: var(--nx-text-muted);
+}
+
+.nx-cc-event-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+.nx-cc-event-title { margin: 0; font-size: $nx-font-size-base; color: var(--nx-text); }
+.nx-cc-event-label { margin: 0; font-size: $nx-font-size-sm; color: var(--nx-text-secondary); }
+
+.nx-cc-event-meta {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  flex-wrap: wrap;
+  margin: $nx-space-1 0 0;
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-muted);
+}
+
+.nx-cc-event-ref { color: var(--nx-text-secondary); }
+
+/*
+  Statuses are words, not colours. The source value stays on the element as
+  data-status for styling, but a reader never has to decode a hue.
+*/
+.nx-cc-event-status {
+  padding: 1px $nx-space-2;
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-full;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.nx-cc-event-quantity { color: var(--nx-text-secondary); }
+
+.nx-cc-event-time {
+  flex: none;
+  font-size: $nx-font-size-xs;
+  color: var(--nx-text-muted);
+  white-space: nowrap;
+  padding-top: 2px;
+}
+
+/* ═══ Stale banner ═════════════════════════════════════════════════════════ */
+
+.nx-cc-stale {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  padding: $nx-space-4 $nx-space-5;
+  font-size: $nx-font-size-sm;
+  color: var(--nx-text-secondary);
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-left: 2px solid var(--nx-warning);
+  border-radius: $nx-radius-sm;
+}
+
+.nx-cc-stale ion-icon { color: var(--nx-warning); flex: none; }
+.nx-cc-stale-text { flex: 1; min-width: 0; }
+
+/* ═══ Quick actions ════════════════════════════════════════════════════════ */
+
+.nx-cc-actions { display: flex; flex-direction: column; gap: $nx-space-5; }
+
+.nx-cc-action-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: $nx-space-4;
+}
+
+.nx-cc-action {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  padding: $nx-space-5;
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-md;
+  color: var(--nx-text);
+  font: inherit;
+  font-size: $nx-font-size-sm;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color $nx-transition-fast, background-color $nx-transition-fast;
+}
+
+.nx-cc-action:hover {
+  background: var(--nx-surface-elevated);
+  border-color: var(--nx-border-strong);
+}
+
+.nx-cc-action:focus-visible { outline: none; box-shadow: $nx-shadow-focus; }
+
+.nx-cc-action-icon { flex: none; color: var(--nx-accent); font-size: 16px; }
+
+.nx-cc-action-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ═══ Skeletons ════════════════════════════════════════════════════════════ */
+
+/*
+  The skeleton occupies the same shape as the loaded workspace, so the swap
+  does not move anything the reader was already looking at.
+*/
+.nx-cc-skeleton { display: flex; flex-direction: column; gap: $nx-space-8; width: 100%; }
+
+.nx-cc-skeleton-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $nx-space-6;
+}
+
+.nx-cc-skeleton-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: $nx-space-8;
+}
+
+.nx-cc-skeleton-block {
+  height: 92px;
+  border-radius: $nx-radius-lg;
+  background: linear-gradient(
+    90deg,
+    var(--nx-surface) 0%,
+    var(--nx-surface-level-1) 50%,
+    var(--nx-surface) 100%
+  );
+  background-size: 200% 100%;
+  animation: nx-cc-pulse 1.4s ease-in-out infinite;
+}
+
+.nx-cc-skeleton-tall { height: 320px; }
+
+@keyframes nx-cc-pulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Respect the global reduced-motion rule explicitly for this page's animation. */
+@media (prefers-reduced-motion: reduce) {
+  .nx-cc-skeleton-block { animation: none; }
+  .nx-cc-row,
+  .nx-cc-action { transition: none; }
+}
+
+/* ═══ Screen-reader-only ═══════════════════════════════════════════════════ */
+
+.nx-cc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ═══ Responsive ═══════════════════════════════════════════════════════════ */
+
+@media (max-width: 1023px) {
+  .nx-cc-columns,
+  .nx-cc-skeleton-columns { grid-template-columns: minmax(0, 1fr); }
+  .nx-cc-skeleton-tall { height: 220px; }
+}
+
+@media (max-width: 767px) {
+  .nx-cc { gap: $nx-space-6; padding: $nx-space-6; }
+
+  .nx-cc-header { align-items: stretch; }
+  .nx-cc-title { font-size: $nx-font-size-xl; }
+  .nx-cc-header-actions { justify-content: space-between; width: 100%; }
+
+  /* One counter per row: two narrow columns push labels into ellipsis. */
+  .nx-cc-metrics { grid-template-columns: minmax(0, 1fr); }
+
+  .nx-cc-action-grid { grid-template-columns: minmax(0, 1fr); }
+
+  /*
+    Full-width rows and 44px targets: the primary way a phone user reaches a
+    record is a tap, and a dense desktop row is not a tap target.
+  */
+  .nx-cc-row { min-height: 44px; }
+  .nx-cc-action { min-height: 44px; }
+
+  .nx-cc-event { flex-wrap: wrap; }
+  .nx-cc-event-time { padding-top: 0; margin-left: auto; }
+}

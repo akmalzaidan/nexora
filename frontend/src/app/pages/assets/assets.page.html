@@ -1,0 +1,730 @@
+<div class="nx-assets-page">
+
+  <!-- ═══ Page header ══════════════════════════════════════════════════ -->
+  <header class="nx-page-header">
+    <h1 class="nx-page-title">Assets</h1>
+    <div class="nx-page-actions">
+      <app-nx-button
+        variant="ghost"
+        size="sm"
+        class="nx-cmd-trigger"
+        (nxClick)="openPalette()"
+        aria-label="Open command palette"
+      >
+        <span class="nx-cmd-hint">⌘K</span>
+      </app-nx-button>
+
+      <ng-container *appNxHasPermission="'manage_assets'">
+        <app-nx-button variant="primary" size="sm" (nxClick)="openCreateForm()">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          New Asset
+        </app-nx-button>
+      </ng-container>
+    </div>
+  </header>
+
+  <!-- ═══ Workspace: master / detail ═══════════════════════════════════ -->
+  <div class="nx-workspace" [class.detail-open]="selectedAssetId() !== null">
+
+    <!-- ─── Master panel ─────────────────────────────────────────────── -->
+    <section class="nx-master" aria-label="Asset list panel">
+
+      <div class="nx-master-controls">
+        <app-nx-search
+          placeholder="Search assets..."
+          [value]="searchQuery()"
+          (nxSearch)="onSearch($event)"
+        ></app-nx-search>
+
+        <div class="nx-filters">
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-filter-status">Status</label>
+            <select
+              id="nx-filter-status"
+              class="nx-select"
+              [value]="statusFilter() || ''"
+              (change)="setStatusFilter($any($event.target).value)"
+            >
+              <option value="">All statuses</option>
+              @for (s of statusOptions; track s) {
+                <option [value]="s">{{ STATUS_LABEL[s] }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-filter-category">Category</label>
+            <select
+              id="nx-filter-category"
+              class="nx-select"
+              [value]="categoryFilter() || ''"
+              (change)="setCategoryFilter($any($event.target).value)"
+            >
+              <option value="">All categories</option>
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-filter-location">Location</label>
+            <select
+              id="nx-filter-location"
+              class="nx-select"
+              [value]="locationFilter() || ''"
+              (change)="setLocationFilter($any($event.target).value)"
+            >
+              <option value="">All locations</option>
+              @for (loc of locations(); track loc.id) {
+                <option [value]="loc.id">{{ loc.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        @if (activeFilterCount() > 0) {
+          <div class="nx-filter-actions">
+            <app-nx-button variant="ghost" size="sm" (nxClick)="clearFilters()">
+              Clear filters ({{ activeFilterCount() }})
+            </app-nx-button>
+          </div>
+        }
+      </div>
+
+      <div class="nx-master-list">
+        @if (isLoading() && assets().length === 0) {
+          <app-nx-loading-state mode="skeleton">
+            <div class="nx-skeleton-rows">
+              @for (i of skeletonRows; track i) {
+                <div class="nx-skeleton-row">
+                  <span class="nx-skeleton nx-skeleton-code"></span>
+                  <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                  <span class="nx-skeleton nx-skeleton-badge"></span>
+                </div>
+              }
+            </div>
+          </app-nx-loading-state>
+        }
+
+        @if (!isLoading() && assets().length === 0 && errorState(); as error) {
+          <app-nx-error-state
+            title="UNABLE TO LOAD ASSETS"
+            [message]="error.message"
+            [showRetry]="true"
+            (nxRetry)="refreshList()"
+          ></app-nx-error-state>
+        }
+
+        @if (!isLoading() && assets().length === 0 && errorState() === null) {
+          <app-nx-empty-state
+            icon="cube-outline"
+            title="NO ASSETS"
+            description="No assets match the current view."
+            [showActions]="hasManageAssets()"
+          >
+            <ng-container *appNxHasPermission="'manage_assets'">
+              <app-nx-button variant="primary" nx-empty-action (nxClick)="openCreateForm()">
+                Create Asset
+              </app-nx-button>
+            </ng-container>
+          </app-nx-empty-state>
+        }
+
+        @for (asset of assets(); track trackByAssetId($index, asset)) {
+          <button
+            type="button"
+            class="nx-asset-row"
+            [class.selected]="asset.id === selectedAssetId()"
+            (click)="selectAsset(asset)"
+            [attr.aria-pressed]="asset.id === selectedAssetId()"
+            [attr.aria-label]="'View ' + asset.name"
+          >
+            <span class="nx-row-line">
+              <span class="nx-asset-code nx-mono">{{ asset.asset_code }}</span>
+              <app-nx-badge [status]="statusToBadge(asset.status)">
+                {{ STATUS_LABEL[asset.status] }}
+              </app-nx-badge>
+            </span>
+            <span class="nx-asset-name">{{ asset.name }}</span>
+            <span class="nx-row-meta">
+              <span class="nx-condition">
+                <span class="nx-condition-dot" [class]="'nx-condition-dot-' + asset.condition"></span>
+                {{ CONDITION_LABEL[asset.condition] }}
+              </span>
+              @if (asset.location) {
+                <span class="nx-row-location">{{ asset.location.name }}</span>
+              }
+            </span>
+          </button>
+        }
+
+        @if (!isLoading() && assets().length > 0) {
+          <div class="nx-pagination">
+            <span class="nx-pagination-info">Showing {{ assets().length }} of {{ totalAssets() }}</span>
+            <div class="nx-pagination-controls">
+              <app-nx-button
+                variant="ghost"
+                size="sm"
+                [disabled]="currentPage() <= 1"
+                (nxClick)="goToPage(currentPage() - 1)"
+                aria-label="Previous page"
+              >Prev</app-nx-button>
+              <span class="nx-pagination-current">Page {{ currentPage() }} of {{ lastPage() }}</span>
+              <app-nx-button
+                variant="ghost"
+                size="sm"
+                [disabled]="currentPage() >= lastPage()"
+                (nxClick)="goToPage(currentPage() + 1)"
+                aria-label="Next page"
+              >Next</app-nx-button>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- QR lookup -->
+      <div class="nx-master-qr">
+        <app-nx-panel title="QR Lookup">
+          <form class="nx-qr-form" (ngSubmit)="lookupQr()">
+            <input
+              class="nx-qr-input nx-mono"
+              type="text"
+              placeholder="NEXORA:ASSET:… or asset code"
+              [value]="lookupInput()"
+              (input)="onLookupInput($any($event.target).value)"
+              aria-label="QR identifier lookup"
+            />
+            <div class="nx-qr-actions">
+              @if (lookupInput()) {
+                <app-nx-button variant="ghost" size="sm" (nxClick)="clearLookup()" aria-label="Clear QR lookup">
+                  Clear
+                </app-nx-button>
+              }
+              <app-nx-button
+                variant="secondary"
+                size="sm"
+                type="submit"
+                [disabled]="!lookupInput().trim() || lookupBusy()"
+              >
+                {{ lookupBusy() ? 'Searching…' : 'Lookup' }}
+              </app-nx-button>
+            </div>
+          </form>
+        </app-nx-panel>
+      </div>
+    </section>
+
+    <!-- ─── Detail panel ─────────────────────────────────────────────── -->
+    <section class="nx-detail" aria-label="Asset detail">
+
+      <button class="nx-detail-back" (click)="clearSelection()" aria-label="Back to asset list">
+        <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+        Assets
+      </button>
+
+      @if (selectedAssetId() !== null && detailLoading()) {
+        <app-nx-loading-state mode="skeleton">
+          <div class="nx-detail-skeleton">
+            <span class="nx-skeleton nx-detail-skeleton-title"></span>
+            <span class="nx-skeleton nx-detail-skeleton-block"></span>
+            <span class="nx-skeleton nx-detail-skeleton-block"></span>
+          </div>
+        </app-nx-loading-state>
+      }
+
+      @if (detailError(); as error) {
+        <div class="nx-detail-error">
+          <app-nx-error-state
+            title="UNABLE TO LOAD DETAIL"
+            [message]="error.message"
+            [showRetry]="true"
+            (nxRetry)="retryDetail()"
+          ></app-nx-error-state>
+        </div>
+      }
+
+      @if (selectedAssetId() === null && !detailLoading()) {
+        <div class="nx-detail-empty">
+          <div class="nx-detail-empty-icon">
+            <ion-icon name="cube-outline" aria-hidden="true"></ion-icon>
+          </div>
+          <h3 class="nx-detail-empty-title">Select an asset</h3>
+          <p class="nx-detail-empty-desc">Choose an asset from the list to view its identity, properties, assignment, and QR details.</p>
+        </div>
+      }
+
+      @if (selectedAsset(); as asset) {
+        <div class="nx-detail-scroll">
+
+          <div class="nx-detail-header">
+            <div class="nx-detail-identifiers">
+              <span class="nx-detail-code nx-mono">{{ asset.asset_code }}</span>
+              <app-nx-badge [status]="statusToBadge(asset.status)">
+                {{ STATUS_LABEL[asset.status] }}
+              </app-nx-badge>
+            </div>
+            <div class="nx-detail-actions">
+              <ng-container *appNxHasPermission="'manage_assets'">
+                <app-nx-button variant="ghost" size="sm" (nxClick)="openEditForm(asset)" aria-label="Edit asset">
+                  Edit
+                </app-nx-button>
+                <app-nx-button variant="ghost" size="sm" class="nx-danger-action" (nxClick)="requestDelete(asset)" aria-label="Delete asset">
+                  Delete
+                </app-nx-button>
+              </ng-container>
+            </div>
+          </div>
+
+          <h2 class="nx-detail-name">{{ asset.name }}</h2>
+
+          <app-nx-panel title="QR Identity">
+            @if (qrIdentity(); as qr) {
+              <div class="nx-detail-fields">
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Identifier</span>
+                  <span class="nx-field-value nx-mono">{{ qr.identifier }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Payload</span>
+                  <span class="nx-field-value nx-mono nx-break">{{ qr.payload }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Format</span>
+                  <span class="nx-field-value">NEXORA Asset QR</span>
+                </div>
+              </div>
+            }
+          </app-nx-panel>
+
+          <app-nx-panel title="Properties">
+            <div class="nx-detail-fields">
+              <div class="nx-detail-field">
+                <span class="nx-field-label">Category</span>
+                <span class="nx-field-value">{{ asset.category?.name ?? '—' }}</span>
+              </div>
+              <div class="nx-detail-field">
+                <span class="nx-field-label">Condition</span>
+                <span class="nx-field-value">
+                  <span class="nx-condition">
+                    <span class="nx-condition-dot" [class]="'nx-condition-dot-' + asset.condition"></span>
+                    {{ CONDITION_LABEL[asset.condition] }}
+                  </span>
+                </span>
+              </div>
+              @if (asset.serial_number) {
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Serial Number</span>
+                  <span class="nx-field-value nx-mono nx-break">{{ asset.serial_number }}</span>
+                </div>
+              }
+              @if (asset.description) {
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Description</span>
+                  <span class="nx-field-value">{{ asset.description }}</span>
+                </div>
+              }
+              @if (asset.purchase_date) {
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Purchase Date</span>
+                  <span class="nx-field-value">{{ asset.purchase_date | date:'mediumDate' }}</span>
+                </div>
+              }
+              @if (asset.purchase_price !== null && asset.purchase_price !== undefined) {
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Purchase Price</span>
+                  <span class="nx-field-value nx-mono">{{ asset.purchase_price | currency:'USD':'symbol':'1.2-2' }}</span>
+                </div>
+              }
+              @if (asset.warranty_expiry) {
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Warranty Expiry</span>
+                  <span class="nx-field-value">{{ asset.warranty_expiry | date:'mediumDate' }}</span>
+                </div>
+              }
+              <div class="nx-detail-field">
+                <span class="nx-field-label">Location</span>
+                <span class="nx-field-value">{{ asset.location?.name ?? '—' }}</span>
+              </div>
+              <div class="nx-detail-field">
+                <span class="nx-field-label">Holder</span>
+                <span class="nx-field-value">{{ asset.current_user?.name ?? 'Unassigned' }}</span>
+              </div>
+              <div class="nx-detail-field">
+                <span class="nx-field-label">Created</span>
+                <span class="nx-field-value nx-mono nx-timestamp">{{ asset.created_at ? (asset.created_at | date:'medium') : '—' }}</span>
+              </div>
+              <div class="nx-detail-field">
+                <span class="nx-field-label">Updated</span>
+                <span class="nx-field-value nx-mono nx-timestamp">{{ asset.updated_at ? (asset.updated_at | date:'medium') : '—' }}</span>
+              </div>
+            </div>
+          </app-nx-panel>
+
+          @if (canViewAssignments()) {
+            <app-nx-panel title="Assignment">
+              <div nx-panel-header-action>
+                @if (hasManageAssignments()) {
+                  @if (activeAssignment()) {
+                    <app-nx-button variant="ghost" size="sm" (nxClick)="requestReturn()" aria-label="Return asset">
+                      Return
+                    </app-nx-button>
+                  }
+                  <app-nx-button variant="primary" size="sm" (nxClick)="openAssignForm(asset)" aria-label="Assign asset">
+                    Assign
+                  </app-nx-button>
+                }
+              </div>
+              <div class="nx-detail-fields">
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Status</span>
+                  <span class="nx-field-value">
+                    <span class="nx-assignment-status">
+                      <span class="nx-assignment-dot" [class.assigned]="!!asset.current_user"></span>
+                      {{ asset.current_user ? 'Assigned' : 'Unassigned' }}
+                    </span>
+                  </span>
+                </div>
+                @if (asset.current_user) {
+                  <div class="nx-detail-field">
+                    <span class="nx-field-label">Holder</span>
+                    <span class="nx-field-value">{{ asset.current_user.name }}</span>
+                  </div>
+                  <div class="nx-detail-field">
+                    <span class="nx-field-label">Email</span>
+                    <span class="nx-field-value nx-mono nx-break">{{ asset.current_user.email }}</span>
+                  </div>
+                }
+                @if (activeAssignment(); as assignment) {
+                  <div class="nx-detail-field">
+                    <span class="nx-field-label">Assigned At</span>
+                    <span class="nx-field-value nx-mono nx-timestamp">{{ assignment.assigned_at ? (assignment.assigned_at | date:'medium') : '—' }}</span>
+                  </div>
+                  @if (assignment.notes) {
+                    <div class="nx-detail-field">
+                      <span class="nx-field-label">Notes</span>
+                      <span class="nx-field-value">{{ assignment.notes }}</span>
+                    </div>
+                  }
+                }
+              </div>
+            </app-nx-panel>
+          }
+
+        </div>
+      }
+    </section>
+  </div>
+
+  <!-- ═══ Create / Edit form (overlay) ════════════════════════════════ -->
+  @if (isFormOpen()) {
+    <div class="nx-overlay" (click)="closeForm()">
+      <div
+        class="nx-dialog"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="editingAsset() ? 'Edit asset' : 'Create asset'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ editingAsset() ? 'Edit Asset' : 'Create Asset' }}</h2>
+          <button class="nx-dialog-close" (click)="closeForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" (ngSubmit)="submitForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-f-code">Asset Code *</label>
+            <input
+              id="nx-f-code"
+              class="nx-form-input nx-mono"
+              type="text"
+              placeholder="e.g. NX-LPT-001"
+              [(ngModel)]="formModel.asset_code"
+              name="asset_code"
+              (ngModelChange)="onFormFieldChange('asset_code', $event)"
+              [class.nx-input-error]="formErrors()['asset_code']"
+              autofocus
+            />
+            @if (formErrors()['asset_code']) {
+              <p class="nx-form-error" role="alert">{{ formErrors()['asset_code'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-f-name">Name *</label>
+            <input
+              id="nx-f-name"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. Lenovo ThinkPad X1"
+              [(ngModel)]="formModel.name"
+              name="name"
+              (ngModelChange)="onFormFieldChange('name', $event)"
+              [class.nx-input-error]="formErrors()['name']"
+            />
+            @if (formErrors()['name']) {
+              <p class="nx-form-error" role="alert">{{ formErrors()['name'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-f-category">Category *</label>
+            <select
+              id="nx-f-category"
+              class="nx-form-input"
+              [(ngModel)]="formModel.asset_category_id"
+              name="asset_category_id"
+              (ngModelChange)="onFormFieldChange('asset_category_id', $event)"
+              [class.nx-input-error]="formErrors()['asset_category_id']"
+            >
+              <option value="">—</option>
+              @for (cat of categories(); track cat.id) {
+                <option [value]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+            @if (formErrors()['asset_category_id']) {
+              <p class="nx-form-error" role="alert">{{ formErrors()['asset_category_id'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-row">
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-f-status">Status</label>
+              <select
+                id="nx-f-status"
+                class="nx-form-input"
+                [(ngModel)]="formModel.status"
+                name="status"
+                (ngModelChange)="onFormFieldChange('status', $event)"
+              >
+                @for (s of statusOptions; track s) {
+                  <option [value]="s">{{ STATUS_LABEL[s] }}</option>
+                }
+              </select>
+            </div>
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-f-condition">Condition</label>
+              <select
+                id="nx-f-condition"
+                class="nx-form-input"
+                [(ngModel)]="formModel.condition"
+                name="condition"
+                (ngModelChange)="onFormFieldChange('condition', $event)"
+              >
+                @for (c of conditionOptions; track c) {
+                  <option [value]="c">{{ CONDITION_LABEL[c] }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-f-serial">Serial Number</label>
+            <input
+              id="nx-f-serial"
+              class="nx-form-input nx-mono"
+              type="text"
+              placeholder="e.g. PFQSD123456"
+              [(ngModel)]="formModel.serial_number"
+              name="serial_number"
+              (ngModelChange)="onFormFieldChange('serial_number', $event)"
+            />
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-f-description">Description</label>
+            <textarea
+              id="nx-f-description"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional description..."
+              [(ngModel)]="formModel.description"
+              name="description"
+              (ngModelChange)="onFormFieldChange('description', $event)"
+            ></textarea>
+          </div>
+
+          <div class="nx-form-row">
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-f-pdate">Purchase Date</label>
+              <input
+                id="nx-f-pdate"
+                class="nx-form-input"
+                type="date"
+                [(ngModel)]="formModel.purchase_date"
+                name="purchase_date"
+                (ngModelChange)="onFormFieldChange('purchase_date', $event)"
+              />
+            </div>
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-f-pprice">Purchase Price</label>
+              <input
+                id="nx-f-pprice"
+                class="nx-form-input"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                [(ngModel)]="formModel.purchase_price"
+                name="purchase_price"
+                (ngModelChange)="onFormFieldChange('purchase_price', $event)"
+              />
+            </div>
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-f-warranty">Warranty Expiry</label>
+            <input
+              id="nx-f-warranty"
+              class="nx-form-input"
+              type="date"
+              [(ngModel)]="formModel.warranty_expiry"
+              name="warranty_expiry"
+              (ngModelChange)="onFormFieldChange('warranty_expiry', $event)"
+            />
+          </div>
+
+          @if (locations().length > 0) {
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-f-location">Location</label>
+              <select
+                id="nx-f-location"
+                class="nx-form-input"
+                [(ngModel)]="formModel.location_id"
+                name="location_id"
+                (ngModelChange)="onFormFieldChange('location_id', $event)"
+              >
+                <option value="">—</option>
+                @for (loc of locations(); track loc.id) {
+                  <option [value]="loc.id">{{ loc.name }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeForm()">Cancel</app-nx-button>
+            <app-nx-button
+              variant="primary"
+              type="submit"
+              [disabled]="isSubmitting()"
+            >
+              @if (isSubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ editingAsset() ? 'Update Asset' : 'Create Asset' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Assign asset modal ══════════════════════════════════════════ -->
+  @if (assignOpen()) {
+    <div class="nx-overlay" (click)="closeAssign()">
+      <div
+        class="nx-dialog nx-dialog-assign"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Assign asset"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">Assign Asset</h2>
+          <button class="nx-dialog-close" (click)="closeAssign()" aria-label="Close assign form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" (ngSubmit)="submitAssign()">
+          @if (assignTarget(); as target) {
+            <p class="nx-assign-target">
+              <span class="nx-assign-target-code nx-mono">{{ target.asset_code }}</span>
+              {{ target.name }}
+            </p>
+          }
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-a-user">Assign to (User) *</label>
+            <select
+              id="nx-a-user"
+              class="nx-form-input"
+              [(ngModel)]="assignModel.user_id"
+              name="user_id"
+              (ngModelChange)="onAssignFieldChange('user_id', $event)"
+              [class.nx-input-error]="assignErrors()['user_id']"
+            >
+              <option value="">—</option>
+              @for (user of assignUsers(); track user.id) {
+                <option [value]="user.id">{{ user.name }}</option>
+              }
+            </select>
+            @if (assignErrors()['user_id']) {
+              <p class="nx-form-error" role="alert">{{ assignErrors()['user_id'] }}</p>
+            }
+          </div>
+
+          @if (locations().length > 0) {
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-a-location">Location</label>
+              <select
+                id="nx-a-location"
+                class="nx-form-input"
+                [(ngModel)]="assignModel.location_id"
+                name="location_id"
+                (ngModelChange)="onAssignFieldChange('location_id', $event)"
+              >
+                <option value="">—</option>
+                @for (loc of locations(); track loc.id) {
+                  <option [value]="loc.id">{{ loc.name }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-a-notes">Notes</label>
+            <textarea
+              id="nx-a-notes"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional assignment note..."
+              [(ngModel)]="assignModel.notes"
+              name="notes"
+              (ngModelChange)="onAssignFieldChange('notes', $event)"
+            ></textarea>
+          </div>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeAssign()">Cancel</app-nx-button>
+            <app-nx-button
+              variant="primary"
+              type="submit"
+              [disabled]="assignSaving()"
+            >
+              @if (assignSaving()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              Assign Asset
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Confirm dialog (delete / return) ═════════════════════════════ -->
+  <app-nx-confirm-dialog
+    [open]="confirmRequest() !== null"
+    [title]="confirmRequest()?.title ?? ''"
+    [message]="confirmRequest()?.message ?? ''"
+    [confirmLabel]="confirmRequest()?.confirmLabel ?? 'Confirm'"
+    confirmVariant="danger"
+    (nxCancel)="closeConfirm()"
+    (confirm)="executeConfirm()"
+  ></app-nx-confirm-dialog>
+
+</div>

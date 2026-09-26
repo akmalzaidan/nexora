@@ -1,0 +1,104 @@
+<div class="nx-shell" [class.has-sidebar]="true">
+  <!-- Desktop Sidebar -->
+  <app-sidebar class="nx-desktop-sidebar"></app-sidebar>
+
+  <!-- Tablet Sidebar (collapsible) -->
+  <app-sidebar
+    class="nx-tablet-sidebar"
+    [class.expanded]="sidebarExpanded()"
+  ></app-sidebar>
+
+  <!-- Tablet sidebar toggle -->
+  <button
+    class="nx-tablet-sidebar-toggle nx-hide-desktop"
+    (click)="sidebarExpanded.set(!sidebarExpanded())"
+  >
+    <ion-icon [name]="sidebarExpanded() ? 'close-outline' : 'menu-outline'"></ion-icon>
+  </button>
+
+  <!-- Mobile Bottom Navigation -->
+  <app-mobile-nav class="nx-mobile-nav-container"></app-mobile-nav>
+
+  <!-- Main Content Area -->
+  <main class="nx-main">
+    <!-- Header -->
+    <header class="nx-header">
+      <div class="nx-header-left">
+        <h1 class="nx-header-title">
+          <ng-content select="[header-title]"></ng-content>
+        </h1>
+      </div>
+      <div class="nx-header-right">
+        <!-- Search -->
+        <div class="nx-search nx-header-search">
+          <ion-icon class="nx-search-icon" name="search"></ion-icon>
+          <input
+            type="text"
+            class="nx-search-input"
+            placeholder="Search assets, people..."
+          />
+          <button class="nx-search-shortcut">
+            <span class="nx-kbd">Ctrl</span>
+            <span class="nx-kbd">K</span>
+          </button>
+        </div>
+
+        <!-- Notifications -->
+        <div class="nx-notification-area">
+          <button
+            type="button"
+            class="nx-header-action nx-notification-bell"
+            [class.is-unread]="unreadCount() > 0"
+            [attr.aria-label]="notificationsAriaLabel()"
+            [attr.aria-expanded]="notificationsOpen()"
+            aria-controls="nx-notification-panel"
+            (click)="toggleNotifications()"
+          >
+            <ion-icon name="notifications-outline" aria-hidden="true"></ion-icon>
+            @if (unreadCount() > 0) {
+              <span class="nx-notification-badge nx-mono">{{ badgeLabel(unreadCount()) }}</span>
+            }
+          </button>
+          @if (notificationsOpen()) {
+            <app-notification-panel
+              class="nx-notification-panel"
+              (requestClose)="closeNotifications()"
+            ></app-notification-panel>
+          }
+        </div>
+
+        <!-- Theme Toggle -->
+        <button class="nx-header-action" (click)="theme.cycle()">
+          <ion-icon [name]="isDark() ? 'sunny-outline' : 'moon-outline'"></ion-icon>
+        </button>
+
+        <!-- User -->
+        @if (auth.user()) {
+          <div class="nx-header-user">
+            <div class="nx-header-user-avatar">
+              {{ auth.user()!.name.charAt(0) }}
+            </div>
+            <div class="nx-header-user-meta">
+              <span class="nx-header-user-name">{{ auth.user()!.name }}</span>
+              <span class="nx-header-user-role">{{ auth.roleName() ?? 'Staff' }}</span>
+            </div>
+            <button class="nx-header-action nx-header-logout" (click)="logout()" aria-label="Sign out">
+              <ion-icon name="log-out-outline"></ion-icon>
+            </button>
+          </div>
+        }
+      </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="nx-content">
+      <router-outlet></router-outlet>
+    </div>
+  </main>
+
+  <!-- Command Palette -->
+  <app-command-palette></app-command-palette>
+
+  <!-- Toast Notifications -->
+  <app-nx-toast-container></app-nx-toast-container>
+</div>

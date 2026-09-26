@@ -1,0 +1,298 @@
+<!--
+  Command Center — Operational Intelligence workspace.
+
+  Structure follows the order an operator actually needs: what the state is,
+  what is waiting for a person, what just happened, and what they can do next.
+  There is deliberately no ion-toolbar here: the shell already owns the global
+  header, notification bell, theme control, and Command Palette.
+-->
+<div class="nx-cc">
+  <!-- ═══ Page header ═══════════════════════════════════════════════════════ -->
+  <header class="nx-cc-header">
+    <div class="nx-cc-heading">
+      <h1 class="nx-cc-title">Command Center</h1>
+      <p class="nx-cc-sub">
+        Current operational state
+        @if (userName()) { <span class="nx-cc-sub-user">· {{ userName() }}</span> }
+      </p>
+    </div>
+
+    <div class="nx-cc-header-actions">
+      @if (hasSnapshot()) {
+        <p class="nx-cc-generated nx-mono">
+          <span class="nx-cc-generated-label">As of</span>
+          {{ timestamp(data()!.generated_at) }}
+        </p>
+      }
+
+      <app-nx-button
+        variant="secondary"
+        size="sm"
+        [disabled]="busy() || !canView()"
+        ariaLabel="Reload the current operational state"
+        (nxClick)="refresh()"
+      >
+        <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
+        {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+      </app-nx-button>
+    </div>
+  </header>
+
+  <!--
+    One live region for the whole page. Announcing state in words (rather than
+    a bare number) keeps the update meaningful, and keeping it to a single
+    region means concurrent changes cannot talk over each other.
+  -->
+  <p class="nx-cc-sr-only" role="status" aria-atomic="true">{{ statusMessage() }}</p>
+
+  <!-- ═══ Access restricted ══════════════════════════════════════════════════ -->
+  @if (!canView()) {
+    <section class="nx-cc-restricted" role="alert">
+      <p class="nx-cc-restricted-title">ACCESS RESTRICTED</p>
+      <p class="nx-cc-restricted-message">
+        Your role does not include the Command Center. No snapshot was requested and the rest
+        of the workspace is unchanged.
+      </p>
+      @if (escapeRoutes().length > 0) {
+        <div class="nx-cc-restricted-actions">
+          @for (link of escapeRoutes(); track link.route) {
+            <app-nx-button variant="secondary" size="sm" [ariaLabel]="'Go to ' + link.label" (nxClick)="go(link.route)">
+              {{ link.label }}
+            </app-nx-button>
+          }
+        </div>
+      }
+    </section>
+  } @else {
+    <!-- ═══ First load: skeletons shaped like the real layout ═══════════════ -->
+    @if (loading() && !hasSnapshot()) {
+      <app-nx-loading-state mode="skeleton">
+        <div class="nx-cc-skeleton" aria-hidden="true">
+          <div class="nx-cc-skeleton-strip">
+            @for (placeholder of [1, 2, 3, 4, 5]; track placeholder) {
+              <div class="nx-cc-skeleton-block"></div>
+            }
+          </div>
+          <div class="nx-cc-skeleton-columns">
+            <div class="nx-cc-skeleton-block nx-cc-skeleton-tall"></div>
+            <div class="nx-cc-skeleton-block nx-cc-skeleton-tall"></div>
+          </div>
+        </div>
+      </app-nx-loading-state>
+    } @else if (error() && !hasSnapshot()) {
+      <!-- ═══ First load failed: the page is not usable yet ═════════════════ -->
+      <app-nx-error-state
+        [title]="error()!.accessDenied ? 'Access restricted' : 'Command Center unavailable'"
+        [message]="error()!.message"
+        [showRetry]="!error()!.accessDenied"
+        (nxRetry)="refresh()"
+      ></app-nx-error-state>
+    } @else if (hasSnapshot()) {
+      <!--
+        A refresh failed while a snapshot is on screen. The stale numbers stay
+        visible — replacing a working view with an error page would be worse
+        than showing the last known state — and the banner says so plainly.
+      -->
+      @if (error()) {
+        <div class="nx-cc-stale" role="alert">
+          <ion-icon name="alert-circle-outline" aria-hidden="true"></ion-icon>
+          <span class="nx-cc-stale-text">{{ error()!.message }} The figures below are the last ones loaded.</span>
+          <app-nx-button variant="ghost" size="sm" (nxClick)="refresh()">Retry</app-nx-button>
+        </div>
+      }
+
+      @if (isEmpty()) {
+        <!--
+          Everything is genuinely zero. Distinct from being denied: the API
+          answered, and it answered with nothing.
+        -->
+        <app-nx-empty-state
+          icon="checkmark-done-outline"
+          title="Nothing to coordinate"
+          description="No assets, stock, requests, maintenance, or events are recorded yet. This workspace fills in as work is added."
+        ></app-nx-empty-state>
+      } @else {
+        <!-- ═══ Current state ═══════════════════════════════════════════════ -->
+        <section class="nx-cc-snapshot" aria-label="Current operational state">
+          @for (group of snapshotGroups(); track group.key) {
+            <article class="nx-cc-stat-group">
+              <h2 class="nx-cc-stat-group-title">{{ group.title }}</h2>
+              <dl class="nx-cc-metrics">
+                @for (metric of group.metrics; track metric.label) {
+                  <div class="nx-cc-metric">
+                    <dt class="nx-cc-metric-label">{{ metric.label }}</dt>
+                    <dd class="nx-cc-metric-value nx-mono">{{ count(metric.value) }}</dd>
+                  </div>
+                }
+              </dl>
+            </article>
+          }
+        </section>
+
+        <div class="nx-cc-columns">
+          <!-- ═══ Operational queues ═════════════════════════════════════════ -->
+          <app-nx-panel class="nx-cc-panel" title="Operational queues" [showHeader]="true">
+            <span nx-panel-header-action class="nx-cc-panel-note nx-mono">
+              newest first
+            </span>
+
+            @if (queueGroups().length === 0) {
+              <p class="nx-cc-panel-empty">No queue is available to your role.</p>
+            }
+
+            @for (group of queueGroups(); track group.key) {
+              <section class="nx-cc-queue" [attr.aria-label]="group.title">
+                <div class="nx-cc-queue-head">
+                  <h3 class="nx-cc-queue-title">{{ group.title }}</h3>
+                  <span class="nx-cc-queue-count nx-mono" [attr.aria-label]="group.queue.count + ' waiting'">
+                    {{ count(group.queue.count) }}
+                  </span>
+                </div>
+
+                @if (group.queue.count === 0) {
+                  <p class="nx-cc-queue-empty">Nothing waiting.</p>
+                } @else if (group.rows.length === 0) {
+                  <p class="nx-cc-queue-empty">Waiting, but no details are loaded for this queue.</p>
+                } @else {
+                  <ul class="nx-cc-rows">
+                    @for (row of group.rows; track row.item.type + ':' + row.item.id) {
+                      <li class="nx-cc-row-item">
+                        @if (row.target) {
+                          <button
+                            type="button"
+                            class="nx-cc-row nx-cc-row-link"
+                            [attr.data-status]="row.item.status"
+                            [attr.aria-label]="
+                              'Open ' +
+                              (row.item.reference ?? row.item.title) +
+                              ' in ' +
+                              (row.target[0] === '/requests' ? 'Requests' : 'Maintenance')
+                            "
+                            (click)="openQueueRow(row)"
+                          >
+                            <ng-container *ngTemplateOutlet="queueRowBody; context: { $implicit: row }"></ng-container>
+                          </button>
+                        } @else {
+                          <!--
+                            An asset-assignment row carries the assignment id, not
+                            an asset id, so there is nothing to select. Rendered
+                            as a reference, not a link that would go nowhere.
+                          -->
+                          <div class="nx-cc-row" [attr.data-status]="row.item.status">
+                            <ng-container *ngTemplateOutlet="queueRowBody; context: { $implicit: row }"></ng-container>
+                          </div>
+                        }
+                      </li>
+                    }
+                  </ul>
+
+                  @if (group.queue.count > group.rows.length) {
+                    <p class="nx-cc-queue-more nx-mono">
+                      Showing {{ count(group.rows.length) }} of {{ count(group.queue.count) }}
+                    </p>
+                  }
+                }
+              </section>
+            }
+          </app-nx-panel>
+
+          <!--
+            Queue row content. Shared by the navigable button and the read-only
+            reference so both look identical — a row's appearance must not
+            depend on whether it happens to be clickable.
+          -->
+          <ng-template #queueRowBody let-row>
+            <span class="nx-cc-row-main">
+              <span class="nx-cc-row-title">{{ row.item.title }}</span>
+              <span class="nx-cc-row-meta">
+                @if (row.item.reference) {
+                  <span class="nx-cc-row-ref nx-mono">{{ row.item.reference }}</span>
+                }
+                <span class="nx-cc-row-status">{{ humanize(row.item.status) }}</span>
+                @if (row.item.created_at) {
+                  <time class="nx-cc-row-time nx-mono" [attr.datetime]="row.item.created_at">
+                    {{ timestamp(row.item.created_at) }}
+                  </time>
+                }
+              </span>
+            </span>
+            @if (row.target) {
+              <ion-icon class="nx-cc-row-chevron" name="chevron-forward-outline" aria-hidden="true"></ion-icon>
+            }
+          </ng-template>
+
+          <!-- ═══ Recent activity ════════════════════════════════════════════ -->
+          <app-nx-panel class="nx-cc-panel" title="Recent activity" [showHeader]="true">
+            <span nx-panel-header-action class="nx-cc-panel-note nx-mono">
+              last {{ data()!.recent_activity.limit }}
+            </span>
+
+            @if (activity().length === 0) {
+              <p class="nx-cc-panel-empty">No events recorded yet.</p>
+            } @else {
+              <ul class="nx-cc-events">
+                @for (item of activity(); track item.type + ':' + item.record_id + ':' + item.occurred_at) {
+                  <li class="nx-cc-event" [attr.data-type]="item.type" [attr.data-action]="item.action">
+                    <ion-icon class="nx-cc-event-icon" [name]="activityIcon(item)" aria-hidden="true"></ion-icon>
+
+                    <div class="nx-cc-event-body">
+                      <p class="nx-cc-event-title">{{ activityLabel(item) }}</p>
+                      @if (item.label) {
+                        <p class="nx-cc-event-label">{{ item.label }}</p>
+                      }
+                      <p class="nx-cc-event-meta">
+                        @if (item.reference) {
+                          <span class="nx-cc-event-ref nx-mono">{{ item.reference }}</span>
+                        }
+                        @if (activityTransition(item); as transition) {
+                          <span class="nx-cc-event-status" [attr.data-status]="item.status">{{ transition }}</span>
+                        } @else if (item.status) {
+                          <span class="nx-cc-event-status">{{ humanize(item.status) }}</span>
+                        }
+                        @if (item.quantity !== null) {
+                          <span class="nx-cc-event-quantity nx-mono">{{ count(item.quantity) }}</span>
+                        }
+                      </p>
+                    </div>
+
+                    <time class="nx-cc-event-time nx-mono" [attr.datetime]="item.occurred_at">
+                      {{ timestamp(item.occurred_at) }}
+                    </time>
+                  </li>
+                }
+              </ul>
+            }
+          </app-nx-panel>
+        </div>
+
+        <!-- ═══ Quick actions ═════════════════════════════════════════════════ -->
+        <section class="nx-cc-actions" aria-label="Quick actions">
+          <h2 class="nx-cc-section-title">Quick actions</h2>
+          <div class="nx-cc-action-grid">
+            @for (action of visibleQuickActions(); track action.label) {
+              <button
+                type="button"
+                class="nx-cc-action"
+                [attr.aria-label]="
+                  action.action === 'theme'
+                    ? isDark()
+                      ? 'Switch to the light theme'
+                      : 'Switch to the dark theme'
+                    : action.label
+                "
+                (click)="onQuickAction(action)"
+              >
+                <ion-icon
+                  class="nx-cc-action-icon"
+                  [name]="action.action === 'theme' && isDark() ? 'moon-outline' : action.icon"
+                  aria-hidden="true"
+                ></ion-icon>
+                <span class="nx-cc-action-label">{{ action.label }}</span>
+              </button>
+            }
+          </div>
+        </section>
+      }
+    }
+  }
+</div>

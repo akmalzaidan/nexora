@@ -1,0 +1,100 @@
+// ═══════════════════════════════════════════════════════════════════
+// NEXORA Dark Theme Variables
+// Scoped CSS custom properties for dark theme.
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+:root[data-theme='dark'] {
+
+  // ─── Surfaces ────────────────────────────────────────────────────
+  --nx-bg: #{$nx-dark-bg};
+  --nx-surface: #{$nx-dark-surface};
+  --nx-surface-elevated: #{$nx-dark-surface-elevated};
+  --nx-surface-level-0: #{$nx-dark-surface-level-0};
+  --nx-surface-level-1: #{$nx-dark-surface-level-1};
+  --nx-surface-level-2: #{$nx-dark-surface-level-2};
+  --nx-surface-level-3: #{$nx-dark-surface-level-3};
+
+  // ─── Borders ─────────────────────────────────────────────────────
+  --nx-border: #{$nx-dark-border};
+  --nx-border-subtle: #{$nx-dark-border-subtle};
+  --nx-border-strong: #{$nx-dark-border-strong};
+
+  // ─── Text ─────────────────────────────────────────────────────────
+  --nx-text: #{$nx-dark-text};
+  --nx-text-secondary: #{$nx-dark-text-secondary};
+  --nx-text-muted: #{$nx-dark-text-muted};
+
+  // ─── Accent ───────────────────────────────────────────────────────
+  --nx-accent: #{$nx-dark-accent};
+  --nx-accent-subtle: #{color-mix(in srgb, $nx-dark-accent 12%, transparent)};
+
+  // ─── Semantic ─────────────────────────────────────────────────────
+  --nx-success: #{$nx-dark-success};
+  --nx-warning: #{$nx-dark-warning};
+  --nx-danger: #{$nx-dark-danger};
+  --nx-info: #{$nx-dark-info};
+  --nx-neutral: #{$nx-dark-neutral};
+
+  // ─── Ionic override ───────────────────────────────────────────────
+  --ion-background-color: #{$nx-dark-bg};
+  --ion-background-color-rgb: 11, 13, 16;
+  --ion-text-color: #{$nx-dark-text};
+  --ion-text-color-rgb: 243, 245, 247;
+  --ion-color-primary: #{$nx-dark-accent};
+  --ion-color-primary-rgb: 232, 255, 79;
+  --ion-toolbar-background: #{$nx-dark-surface};
+  --ion-tab-bar-background: #{$nx-dark-surface};
+  --ion-item-background: #{$nx-dark-surface};
+  --ion-card-background: #{$nx-dark-surface};
+  --ion-modal-background: #{$nx-dark-surface-level-3};
+  --ion-overlay-background: #{$nx-dark-surface-level-3};
+}
+
+:root[data-theme='light'] {
+
+  // ─── Surfaces ────────────────────────────────────────────────────
+  --nx-bg: #{$nx-light-bg};
+  --nx-surface: #{$nx-light-surface};
+  --nx-surface-elevated: #{$nx-light-surface-elevated};
+  --nx-surface-level-0: #{$nx-light-surface-level-0};
+  --nx-surface-level-1: #{$nx-light-surface-level-1};
+  --nx-surface-level-2: #{$nx-light-surface-level-2};
+  --nx-surface-level-3: #{$nx-light-surface-level-3};
+
+  // ─── Borders ─────────────────────────────────────────────────────
+  --nx-border: #{$nx-light-border};
+  --nx-border-subtle: #{$nx-light-border-subtle};
+  --nx-border-strong: #{$nx-light-border-strong};
+
+  // ─── Text ─────────────────────────────────────────────────────────
+  --nx-text: #{$nx-light-text};
+  --nx-text-secondary: #{$nx-light-text-secondary};
+  --nx-text-muted: #{$nx-light-text-muted};
+
+  // ─── Accent ───────────────────────────────────────────────────────
+  --nx-accent: #{$nx-light-accent};
+  --nx-accent-subtle: #{color-mix(in srgb, $nx-light-accent 12%, transparent)};
+
+  // ─── Semantic ─────────────────────────────────────────────────────
+  --nx-success: #{$nx-light-success};
+  --nx-warning: #{$nx-light-warning};
+  --nx-danger: #{$nx-light-danger};
+  --nx-info: #{$nx-light-info};
+  --nx-neutral: #{$nx-light-neutral};
+
+  // ─── Ionic override ───────────────────────────────────────────────
+  --ion-background-color: #{$nx-light-bg};
+  --ion-background-color-rgb: 247, 247, 245;
+  --ion-text-color: #{$nx-light-text};
+  --ion-text-color-rgb: 21, 21, 21;
+  --ion-color-primary: #{$nx-light-accent};
+  --ion-color-primary-rgb: 163, 196, 0;
+  --ion-toolbar-background: #{$nx-light-surface};
+  --ion-tab-bar-background: #{$nx-light-surface};
+  --ion-item-background: #{$nx-light-surface};
+  --ion-card-background: #{$nx-light-surface};
+  --ion-modal-background: #{$nx-light-surface-level-3};
+  --ion-overlay-background: #{$nx-light-surface-level-3};
+}

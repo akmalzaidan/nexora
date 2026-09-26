@@ -1,0 +1,38 @@
+# --- Environment ---
+.env
+.env.*
+!.env.example
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Docker data and local volumes ---
+docker/volumes/
+data/
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# --- Backend (Laravel) extra safety ---
+backend/storage/app/public/
+backend/storage/pail/
+backend/vendor/
+
+# --- Frontend ---
+frontend/www/
+frontend/.angular/
+frontend/node_modules/
+
+# --- Capacitor native platforms ---
+frontend/android/
+frontend/ios/

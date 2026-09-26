@@ -1,0 +1,106 @@
+// ═══════════════════════════════════════════════════════════════════
+// NEXORA Typography
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+// ─── Font Families ──────────────────────────────────────────────────
+
+.nx-sans {
+  font-family: $nx-font-sans;
+}
+
+.nx-mono {
+  font-family: $nx-font-mono;
+  font-feature-settings: 'liga' 1, 'calt' 1;
+  letter-spacing: -0.01em;
+}
+
+// ─── Font Sizes ─────────────────────────────────────────────────────
+
+.nx-text-xs  { font-size: $nx-font-size-xs;  }
+.nx-text-sm  { font-size: $nx-font-size-sm;  }
+.nx-text-base { font-size: $nx-font-size-base; }
+.nx-text-md  { font-size: $nx-font-size-md;  }
+.nx-text-lg  { font-size: $nx-font-size-lg;  }
+.nx-text-xl  { font-size: $nx-font-size-xl;  }
+.nx-text-2xl { font-size: $nx-font-size-2xl; }
+.nx-text-3xl { font-size: $nx-font-size-3xl; }
+.nx-text-4xl { font-size: $nx-font-size-4xl; }
+
+// ─── Font Weights ───────────────────────────────────────────────────
+
+.nx-weight-normal   { font-weight: $nx-font-weight-normal; }
+.nx-weight-medium   { font-weight: $nx-font-weight-medium; }
+.nx-weight-semibold { font-weight: $nx-font-weight-semibold; }
+.nx-weight-bold     { font-weight: $nx-font-weight-bold; }
+
+// ─── Line Heights ───────────────────────────────────────────────────
+
+.nx-leading-tight   { line-height: $nx-line-height-tight; }
+.nx-leading-normal  { line-height: $nx-line-height-normal; }
+.nx-leading-relaxed { line-height: $nx-line-height-relaxed; }
+
+// ─── Text Colors (applied per theme via CSS custom properties) ──────
+
+.nx-text-primary   { color: var(--nx-text); }
+.nx-text-secondary { color: var(--nx-text-secondary); }
+.nx-text-muted     { color: var(--nx-text-muted); }
+
+// ─── Display Classes ────────────────────────────────────────────────
+
+.nx-display-4 {
+  font-size: $nx-font-size-4xl;
+  font-weight: $nx-font-weight-bold;
+  line-height: $nx-line-height-tight;
+  letter-spacing: -0.03em;
+}
+
+.nx-display-3 {
+  font-size: $nx-font-size-3xl;
+  font-weight: $nx-font-weight-bold;
+  line-height: $nx-line-height-tight;
+  letter-spacing: -0.02em;
+}
+
+.nx-display-2 {
+  font-size: $nx-font-size-2xl;
+  font-weight: $nx-font-weight-semibold;
+  line-height: $nx-line-height-tight;
+}
+
+.nx-display-1 {
+  font-size: $nx-font-size-xl;
+  font-weight: $nx-font-weight-semibold;
+  line-height: $nx-line-height-tight;
+}
+
+.nx-headline {
+  font-size: $nx-font-size-lg;
+  font-weight: $nx-font-weight-semibold;
+  line-height: $nx-line-height-tight;
+}
+
+.nx-title {
+  font-size: $nx-font-size-md;
+  font-weight: $nx-font-weight-medium;
+  line-height: $nx-line-height-normal;
+}
+
+.nx-subtitle {
+  font-size: $nx-font-size-sm;
+  font-weight: $nx-font-weight-medium;
+  line-height: $nx-line-height-normal;
+}
+
+.nx-body {
+  font-size: $nx-font-size-base;
+  font-weight: $nx-font-weight-normal;
+  line-height: $nx-line-height-normal;
+}
+
+.nx-caption {
+  font-size: $nx-font-size-xs;
+  font-weight: $nx-font-weight-normal;
+  line-height: $nx-line-height-relaxed;
+}

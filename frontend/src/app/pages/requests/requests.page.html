@@ -1,0 +1,909 @@
+<div class="nx-req-page">
+
+  <!-- ═══ Page header ══════════════════════════════════════════════════ -->
+  <header class="nx-page-header">
+    <div class="nx-page-heading">
+      <h1 class="nx-page-title">Requests</h1>
+      <p class="nx-page-sub">Helpdesk and operational request management</p>
+    </div>
+    <div class="nx-page-actions">
+      <app-nx-button
+        variant="ghost"
+        size="sm"
+        class="nx-cmd-trigger"
+        (nxClick)="openPalette()"
+        aria-label="Open command palette"
+      >
+        <span class="nx-cmd-hint">⌘K</span>
+      </app-nx-button>
+
+      <ng-container *appNxHasPermission="'view_tickets'">
+        <app-nx-button variant="primary" size="sm" (nxClick)="openCreateTicketForm()">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          New Request
+        </app-nx-button>
+      </ng-container>
+    </div>
+  </header>
+
+  <!-- ═══ Summary strip ════════════════════════════════════════════════ -->
+  <div class="nx-summary" aria-label="Requests summary">
+    <div class="nx-summary-item">
+      <span class="nx-summary-label">Requests</span>
+      <span class="nx-summary-value nx-mono">{{ ticketsTotal().toLocaleString() }}</span>
+    </div>
+    <div class="nx-summary-item">
+      <span class="nx-summary-label">Categories</span>
+      <span class="nx-summary-value nx-mono">{{ categoriesTotal().toLocaleString() }}</span>
+    </div>
+  </div>
+
+  <!-- ═══ Tabs ═════════════════════════════════════════════════════════ -->
+  <nav class="nx-tabs" role="tablist" aria-label="Requests sections">
+    <button
+      type="button"
+      class="nx-tab"
+      [class.active]="activeTab() === 'requests'"
+      role="tab"
+      [attr.aria-selected]="activeTab() === 'requests'"
+      (click)="setTab('requests')"
+    >Requests</button>
+    <ng-container *appNxHasPermission="'manage_tickets'">
+      <button
+        type="button"
+        class="nx-tab"
+        [class.active]="activeTab() === 'categories'"
+        role="tab"
+        [attr.aria-selected]="activeTab() === 'categories'"
+        (click)="setTab('categories')"
+      >Categories</button>
+    </ng-container>
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       REQUESTS — master / detail workspace
+       ══════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'requests') {
+    <div class="nx-workspace" [class.detail-open]="selectedTicketId() !== null">
+
+      <!-- ─── Master panel ─────────────────────────────────────────── -->
+      <section class="nx-master" aria-label="Request list panel">
+
+        <div class="nx-master-controls">
+          <app-nx-search
+            placeholder="Search requests..."
+            [value]="searchQuery()"
+            (nxSearch)="onSearch($event)"
+          ></app-nx-search>
+
+          <div class="nx-filters">
+            <div class="nx-filter-field">
+              <label class="nx-filter-label" for="nx-filter-status">Status</label>
+              <select
+                id="nx-filter-status"
+                class="nx-select"
+                [value]="statusFilter()"
+                (change)="setStatusFilter($any($event.target).value)"
+              >
+                <option value="">All statuses</option>
+                <option value="OPEN">Open</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="RESOLVED">Resolved</option>
+                <option value="CLOSED">Closed</option>
+              </select>
+            </div>
+
+            <div class="nx-filter-field">
+              <label class="nx-filter-label" for="nx-filter-priority">Priority</label>
+              <select
+                id="nx-filter-priority"
+                class="nx-select"
+                [value]="priorityFilter()"
+                (change)="setPriorityFilter($any($event.target).value)"
+              >
+                <option value="">All priorities</option>
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </div>
+
+            <div class="nx-filter-field">
+              <label class="nx-filter-label" for="nx-filter-category">Category</label>
+              <select
+                id="nx-filter-category"
+                class="nx-select"
+                [value]="categoryFilter() || ''"
+                (change)="setCategoryFilter($any($event.target).value)"
+              >
+                <option value="">All categories</option>
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+
+            @if (isAgent()) {
+              <div class="nx-filter-field">
+                <label class="nx-filter-label" for="nx-filter-assignee">Assignee</label>
+                <select
+                  id="nx-filter-assignee"
+                  class="nx-select"
+                  [value]="assigneeFilter() || ''"
+                  (change)="setAssigneeFilter($any($event.target).value)"
+                >
+                  <option value="">Anyone</option>
+                  <option value="0">Unassigned</option>
+                  @for (user of assignees(); track user.id) {
+                    <option [value]="user.id">{{ user.name }}</option>
+                  }
+                </select>
+              </div>
+            }
+
+            <div class="nx-filter-field">
+              <label class="nx-filter-label" for="nx-filter-sort">Sort</label>
+              <select
+                id="nx-filter-sort"
+                class="nx-select"
+                [value]="sortOption()"
+                (change)="setSortOption($any($event.target).value)"
+              >
+                @for (option of SORTS; track option.value) {
+                  <option [value]="option.value">{{ option.label }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (activeFilterCount() > 0) {
+            <div class="nx-filter-actions">
+              <app-nx-button variant="ghost" size="sm" (nxClick)="clearFilters()">
+                Clear filters ({{ activeFilterCount() }})
+              </app-nx-button>
+            </div>
+          }
+        </div>
+
+        <div class="nx-master-list">
+          @if (ticketsLoading() && tickets().length === 0) {
+            <app-nx-loading-state mode="skeleton">
+              <div class="nx-skeleton-rows">
+                @for (i of skeletonRows; track i) {
+                  <div class="nx-skeleton-row">
+                    <span class="nx-skeleton nx-skeleton-code"></span>
+                    <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                    <span class="nx-skeleton nx-skeleton-badge"></span>
+                  </div>
+                }
+              </div>
+            </app-nx-loading-state>
+          }
+
+          @if (!ticketsLoading() && tickets().length === 0 && ticketsError(); as error) {
+            <app-nx-error-state
+              title="UNABLE TO LOAD REQUESTS"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="refreshTickets()"
+            ></app-nx-error-state>
+          }
+
+          @if (!ticketsLoading() && tickets().length === 0 && ticketsError() === null) {
+            <app-nx-empty-state
+              icon="document-text-outline"
+              [title]="activeFilterCount() > 0 ? 'NO MATCHING REQUESTS' : 'NO REQUESTS YET'"
+              [description]="activeFilterCount() > 0 ? 'Try adjusting your search or filters.' : 'Create your first request to start tracking helpdesk work.'"
+              [showActions]="canCreateTicket()"
+            >
+              <ng-container *appNxHasPermission="'view_tickets'">
+                <app-nx-button variant="primary" nx-empty-action (nxClick)="openCreateTicketForm()">
+                  New Request
+                </app-nx-button>
+              </ng-container>
+            </app-nx-empty-state>
+          }
+
+          @for (ticket of tickets(); track trackByTicketId($index, ticket)) {
+            <button
+              type="button"
+              class="nx-item-row"
+              [class.selected]="ticket.id === selectedTicketId()"
+              (click)="selectTicket(ticket.id)"
+              [attr.aria-pressed]="ticket.id === selectedTicketId()"
+              [attr.aria-label]="'View ' + ticket.ticket_number + ' ' + ticket.title"
+            >
+              <span class="nx-row-line">
+                <span class="nx-sku nx-mono">{{ ticket.ticket_number }}</span>
+                <app-nx-badge [status]="statusBadge(ticket.status)">
+                  {{ STATUS_LABEL[ticket.status] }}
+                </app-nx-badge>
+              </span>
+              <span class="nx-item-name">{{ ticket.title }}</span>
+              <span class="nx-row-meta">
+                <span class="nx-row-category">{{ ticket.category?.name ?? 'No category' }}</span>
+                <span class="nx-row-sep">·</span>
+                <span class="nx-row-requester">{{ userName(ticket.requester) }}</span>
+                <span class="nx-row-sep">·</span>
+                <span class="nx-row-time nx-mono">{{ ticket.created_at ? (ticket.created_at | date:'MMM d') : '—' }}</span>
+              </span>
+            </button>
+          }
+
+          @if (!ticketsLoading() && tickets().length > 0) {
+            <div class="nx-pagination">
+              <span class="nx-pagination-info">Showing {{ tickets().length }} of {{ ticketsTotal() }}</span>
+              <div class="nx-pagination-controls">
+                <app-nx-button
+                  variant="ghost"
+                  size="sm"
+                  [disabled]="currentPage() <= 1"
+                  (nxClick)="goToPage(currentPage() - 1)"
+                  aria-label="Previous page"
+                >Prev</app-nx-button>
+                <span class="nx-pagination-current">Page {{ currentPage() }} of {{ lastPage() }}</span>
+                <app-nx-button
+                  variant="ghost"
+                  size="sm"
+                  [disabled]="currentPage() >= lastPage()"
+                  (nxClick)="goToPage(currentPage() + 1)"
+                  aria-label="Next page"
+                >Next</app-nx-button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- ─── Detail panel ─────────────────────────────────────────── -->
+      <section class="nx-detail" aria-label="Request detail">
+
+        <button class="nx-detail-back" (click)="clearSelection()" aria-label="Back to request list">
+          <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+          Requests
+        </button>
+
+        @if (selectedTicketId() !== null && detailLoading()) {
+          <app-nx-loading-state mode="skeleton">
+            <div class="nx-detail-skeleton">
+              <span class="nx-skeleton nx-detail-skeleton-title"></span>
+              <span class="nx-skeleton nx-detail-skeleton-block"></span>
+              <span class="nx-skeleton nx-detail-skeleton-block"></span>
+              <span class="nx-skeleton nx-detail-skeleton-block"></span>
+            </div>
+          </app-nx-loading-state>
+        }
+
+        @if (detailError(); as error) {
+          @if (error.accessDenied) {
+            <div class="nx-detail-restricted">
+              <div class="nx-detail-empty-icon">
+                <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+              </div>
+              <h3 class="nx-detail-empty-title">ACCESS RESTRICTED</h3>
+              <p class="nx-detail-empty-desc">{{ error.message }}</p>
+              <app-nx-button variant="secondary" size="sm" (nxClick)="clearSelection()">
+                Back to Requests
+              </app-nx-button>
+            </div>
+          } @else {
+            <div class="nx-detail-error">
+              <app-nx-error-state
+                title="UNABLE TO LOAD REQUEST"
+                [message]="error.message"
+                [showRetry]="true"
+                (nxRetry)="retryDetail()"
+              >
+                <app-nx-button variant="ghost" size="sm" nx-error-action (nxClick)="clearSelection()">
+                  Back to Requests
+                </app-nx-button>
+              </app-nx-error-state>
+            </div>
+          }
+        }
+
+        @if (selectedTicketId() === null && !detailLoading()) {
+          <div class="nx-detail-empty">
+            <div class="nx-detail-empty-icon">
+              <ion-icon name="document-text-outline" aria-hidden="true"></ion-icon>
+            </div>
+            <h3 class="nx-detail-empty-title">Select a request</h3>
+            <p class="nx-detail-empty-desc">Choose a request from the list to view its details, comments, and history.</p>
+          </div>
+        }
+
+        @if (selectedTicket(); as ticket) {
+          <div class="nx-detail-scroll">
+
+            <div class="nx-detail-header">
+              <div class="nx-detail-identifiers">
+                <span class="nx-detail-code nx-mono">{{ ticket.ticket_number }}</span>
+                <app-nx-badge [status]="statusBadge(ticket.status)">
+                  {{ STATUS_LABEL[ticket.status] }}
+                </app-nx-badge>
+                <app-nx-badge [status]="priorityBadge(ticket.priority)">
+                  {{ PRIORITY_LABEL[ticket.priority] }}
+                </app-nx-badge>
+              </div>
+              <div class="nx-detail-actions">
+                <ng-container *appNxHasPermission="'manage_tickets'">
+                  <app-nx-button variant="ghost" size="sm" (nxClick)="openEditTicketForm(ticket)" aria-label="Edit request">
+                    Edit
+                  </app-nx-button>
+                  <app-nx-button
+                    [variant]="ticket.status === 'CLOSED' ? 'secondary' : 'primary'"
+                    size="sm"
+                    (nxClick)="requestStatusChange(ticket)"
+                    [attr.aria-label]="statusActionLabel(ticket.status) + ' request'"
+                  >
+                    {{ statusActionLabel(ticket.status) }}
+                  </app-nx-button>
+                </ng-container>
+              </div>
+            </div>
+
+            <h2 class="nx-detail-name">{{ ticket.title }}</h2>
+
+            @if (ticket.description) {
+              <app-nx-panel title="Details">
+                <p class="nx-ticket-description">{{ ticket.description }}</p>
+              </app-nx-panel>
+            }
+
+            <app-nx-panel title="Overview">
+              <div class="nx-detail-fields">
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Requested by</span>
+                  <span class="nx-field-value">{{ userName(ticket.requester) }}</span>
+                  @if (ticket.requester?.role) {
+                    <span class="nx-field-sub">{{ ticket.requester!.role.name }}</span>
+                  }
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Category</span>
+                  <span class="nx-field-value">{{ ticket.category?.name ?? '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Department</span>
+                  <span class="nx-field-value">{{ ticket.department?.name ?? '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Location</span>
+                  <span class="nx-field-value">{{ ticket.location?.name ?? '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Created</span>
+                  <span class="nx-field-value nx-mono nx-timestamp">{{ ticket.created_at ? (ticket.created_at | date:'medium') : '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Updated</span>
+                  <span class="nx-field-value nx-mono nx-timestamp">{{ ticket.updated_at ? (ticket.updated_at | date:'medium') : '—' }}</span>
+                </div>
+              </div>
+            </app-nx-panel>
+
+            <app-nx-panel title="Assignment">
+              <div class="nx-detail-fields">
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Assignee</span>
+                  @if (ticket.assignee; as assignee) {
+                    <span class="nx-field-value">{{ assignee.name }}</span>
+                    @if (assignee.role || assignee.department) {
+                      <span class="nx-field-sub">{{ assignee.role?.name ?? '' }}{{ assignee.role && assignee.department ? ' · ' : '' }}{{ assignee.department?.name ?? '' }}</span>
+                    }
+                  } @else {
+                    <span class="nx-field-value">Unassigned</span>
+                  }
+                </div>
+              </div>
+              <ng-container *appNxHasPermission="'assign_tickets'">
+                <div class="nx-assign-actions">
+                  <app-nx-button variant="ghost" size="sm" (nxClick)="openAssignDialog(ticket)" [attr.aria-label]="ticket.assignee ? 'Reassign request' : 'Assign request'">
+                    {{ ticket.assignee ? 'Reassign' : 'Assign' }}
+                  </app-nx-button>
+                  @if (ticket.assignee) {
+                    <app-nx-button variant="ghost" size="sm" class="nx-danger-action" (nxClick)="requestUnassignTicket(ticket)" aria-label="Remove assignment">
+                      Remove
+                    </app-nx-button>
+                  }
+                </div>
+              </ng-container>
+            </app-nx-panel>
+
+            <app-nx-panel title="Comments">
+              @if (commentsError(); as error) {
+                <app-nx-error-state
+                  title="UNABLE TO LOAD COMMENTS"
+                  [message]="error.message"
+                  [showRetry]="true"
+                  (nxRetry)="loadComments(ticket.id)"
+                ></app-nx-error-state>
+              } @else {
+                <form class="nx-comment-form" [formGroup]="commentForm" (ngSubmit)="submitComment()">
+                  <div class="nx-form-field">
+                    <label class="nx-visually-hidden" for="nx-comment">Write a comment</label>
+                    <textarea
+                      id="nx-comment"
+                      class="nx-form-input"
+                      rows="3"
+                      placeholder="Write a comment or update..."
+                      formControlName="comment"
+                      [maxLength]="5000"
+                      (input)="clearCommentError('comment')"
+                      [class.nx-input-error]="commentErrors()['comment']"
+                    ></textarea>
+                    @if (commentErrors()['comment']) {
+                      <p class="nx-form-error" role="alert">{{ commentErrors()['comment'] }}</p>
+                    }
+                  </div>
+
+                  @if (isInternalNoteAvailable()) {
+                    <label class="nx-checkbox">
+                      <input type="checkbox" formControlName="is_internal" />
+                      <span>Internal note <span class="nx-internal-hint">(agents only)</span></span>
+                    </label>
+                  }
+
+                  @if (commentMessage()) {
+                    <p class="nx-comment-error" role="alert">{{ commentMessage() }}</p>
+                  }
+
+                  <div class="nx-comment-actions">
+                    <app-nx-button variant="primary" size="sm" type="submit" [disabled]="isCommentSubmitting()">
+                      @if (isCommentSubmitting()) {
+                        <ion-icon name="sync" aria-hidden="true"></ion-icon>
+                      }
+                      Post Comment
+                    </app-nx-button>
+                  </div>
+                </form>
+
+                @if (commentsLoading()) {
+                  <app-nx-loading-state mode="skeleton">
+                    <div class="nx-skeleton-rows">
+                      @for (i of skeletonRows; track i) {
+                        <div class="nx-skeleton-row">
+                          <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                          <span class="nx-skeleton nx-skeleton-badge"></span>
+                        </div>
+                      }
+                    </div>
+                  </app-nx-loading-state>
+                }
+
+                @if (!commentsLoading() && comments().length === 0) {
+                  <app-nx-empty-state
+                    icon="chatbubble-ellipses-outline"
+                    title="NO COMMENTS YET"
+                    description="Replies and updates will appear here."
+                  ></app-nx-empty-state>
+                }
+
+                @if (comments().length > 0) {
+                  <div class="nx-comment-list">
+                    @for (comment of comments(); track comment.id) {
+                      <div class="nx-comment-item">
+                        <div class="nx-comment-head">
+                          <span class="nx-comment-author">{{ comment.user?.name ?? 'Unknown user' }}</span>
+                          @if (comment.is_internal) {
+                            <app-nx-badge status="info">Internal</app-nx-badge>
+                          }
+                          <span class="nx-comment-time nx-mono">{{ comment.created_at ? (comment.created_at | date:'MMM d, y HH:mm') : '—' }}</span>
+                        </div>
+                        <p class="nx-comment-body">{{ comment.comment }}</p>
+                      </div>
+                    }
+                  </div>
+                }
+              }
+            </app-nx-panel>
+
+            <app-nx-panel title="History">
+              @if (historyError(); as error) {
+                <app-nx-error-state
+                  title="UNABLE TO LOAD HISTORY"
+                  [message]="error.message"
+                  [showRetry]="true"
+                  (nxRetry)="loadHistory(ticket.id)"
+                ></app-nx-error-state>
+              } @else if (historyLoading()) {
+                <app-nx-loading-state mode="skeleton">
+                  <div class="nx-skeleton-rows">
+                    @for (i of skeletonRows; track i) {
+                      <div class="nx-skeleton-row">
+                        <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                        <span class="nx-skeleton nx-skeleton-badge"></span>
+                      </div>
+                    }
+                  </div>
+                </app-nx-loading-state>
+              } @else if (history().length === 0) {
+                <app-nx-empty-state
+                  icon="time-outline"
+                  title="NO HISTORY AVAILABLE"
+                  description="Changes to this request will be recorded here."
+                ></app-nx-empty-state>
+              } @else {
+                <div class="nx-timeline">
+                  @for (event of history(); track event.id) {
+                    <div class="nx-timeline-item">
+                      <span class="nx-timeline-dot"></span>
+                      <div class="nx-timeline-content">
+                        <div class="nx-timeline-head">
+                          <span class="nx-timeline-title">{{ ACTION_LABEL[event.action] ?? event.action }}</span>
+                          <span class="nx-timeline-time nx-mono">{{ event.created_at ? (event.created_at | date:'MMM d, y HH:mm') : '—' }}</span>
+                        </div>
+                        @if (event.action === 'STATUS_CHANGED') {
+                          <p class="nx-timeline-detail">
+                            {{ statusLabel(event.old_status) }} <span class="nx-timeline-arrow">→</span> {{ statusLabel(event.new_status) }}
+                          </p>
+                        }
+                        @if (event.notes) {
+                          <p class="nx-timeline-detail">{{ event.notes }}</p>
+                        }
+                        <p class="nx-timeline-actor">by {{ event.user?.name ?? 'System' }}</p>
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+            </app-nx-panel>
+
+          </div>
+        }
+      </section>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       CATEGORIES (management)
+       ══════════════════════════════════════════════════════════════════ -->
+  @if (activeTab() === 'categories') {
+    <div class="nx-tab-view">
+      <div class="nx-tab-toolbar">
+        <span class="nx-tab-title">Request Categories</span>
+        <ng-container *appNxHasPermission="'manage_tickets'">
+          <app-nx-button variant="primary" size="sm" (nxClick)="openCreateCategoryForm()">
+            <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+            New Category
+          </app-nx-button>
+        </ng-container>
+      </div>
+
+      @if (categoriesLoading() && ticketCategories().length === 0) {
+        <app-nx-loading-state mode="skeleton">
+          <div class="nx-skeleton-rows">
+            @for (i of skeletonRows; track i) {
+              <div class="nx-skeleton-row">
+                <span class="nx-skeleton nx-skeleton-code"></span>
+                <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                <span class="nx-skeleton nx-skeleton-badge"></span>
+              </div>
+            }
+          </div>
+        </app-nx-loading-state>
+      }
+
+      @if (!categoriesLoading() && ticketCategories().length === 0 && categoriesError(); as error) {
+        <app-nx-error-state
+          title="UNABLE TO LOAD CATEGORIES"
+          [message]="error.message"
+          [showRetry]="true"
+          (nxRetry)="loadTicketCategories(true)"
+        ></app-nx-error-state>
+      }
+
+      @if (!categoriesLoading() && ticketCategories().length === 0 && categoriesError() === null) {
+        <app-nx-empty-state
+          icon="pricetags-outline"
+          title="NO CATEGORIES"
+          description="Request categories group requests into a support triage flow."
+          [showActions]="hasManageTickets()"
+        >
+          <ng-container *appNxHasPermission="'manage_tickets'">
+            <app-nx-button variant="primary" nx-empty-action (nxClick)="openCreateCategoryForm()">
+              New Category
+            </app-nx-button>
+          </ng-container>
+        </app-nx-empty-state>
+      }
+
+      @if (ticketCategories().length > 0) {
+        <div class="nx-table-wrap nx-fill">
+          <table class="nx-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Code</th>
+                <th scope="col" class="nx-number">Requests</th>
+                <th scope="col">Description</th>
+                <th scope="col" class="nx-actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (category of ticketCategories(); track trackById($index, category)) {
+                <tr>
+                  <td class="nx-cell-strong">{{ category.name }}</td>
+                  <td class="nx-mono">{{ category.code }}</td>
+                  <td class="nx-number nx-mono">{{ category.tickets_count?.toLocaleString() ?? '—' }}</td>
+                  <td class="nx-cell-muted">{{ category.description ?? '—' }}</td>
+                  <td class="nx-actions-col">
+                    <ng-container *appNxHasPermission="'manage_tickets'">
+                      <app-nx-button variant="ghost" size="sm" (nxClick)="openEditCategoryForm(category)" aria-label="Edit category">Edit</app-nx-button>
+                      <app-nx-button variant="ghost" size="sm" class="nx-danger-action" (nxClick)="requestDeleteCategory(category)" aria-label="Delete category">Delete</app-nx-button>
+                    </ng-container>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (categoryLastPage() > 1) {
+          <div class="nx-pagination">
+            <span class="nx-pagination-info">Showing {{ ticketCategories().length }} of {{ categoriesTotal() }}</span>
+            <div class="nx-pagination-controls">
+              <app-nx-button variant="ghost" size="sm" [disabled]="categoryPage() <= 1" (nxClick)="goToCategoryPage(categoryPage() - 1)" aria-label="Previous page">Prev</app-nx-button>
+              <span class="nx-pagination-current">Page {{ categoryPage() }} of {{ categoryLastPage() }}</span>
+              <app-nx-button variant="ghost" size="sm" [disabled]="categoryPage() >= categoryLastPage()" (nxClick)="goToCategoryPage(categoryPage() + 1)" aria-label="Next page">Next</app-nx-button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ═══ Request create / edit (overlay) ══════════════════════════════ -->
+  @if (isTicketFormOpen()) {
+    <div class="nx-overlay" (click)="closeTicketForm()" (keydown.escape)="closeTicketForm()">
+      <div
+        class="nx-dialog"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="editingTicket() ? 'Edit request' : 'Create request'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ editingTicket() ? 'Edit Request' : 'New Request' }}</h2>
+          <button class="nx-dialog-close" (click)="closeTicketForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" [formGroup]="ticketForm" (ngSubmit)="submitTicketForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-t-title">Title *</label>
+            <input
+              id="nx-t-title"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. Laptop will not turn on"
+              formControlName="title"
+              (input)="clearTicketError('title')"
+              [class.nx-input-error]="ticketErrors()['title']"
+              autofocus
+            />
+            @if (ticketErrors()['title']) {
+              <p class="nx-form-error" role="alert">{{ ticketErrors()['title'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-t-description">Description *</label>
+            <textarea
+              id="nx-t-description"
+              class="nx-form-input"
+              rows="4"
+              placeholder="Describe the request..."
+              formControlName="description"
+              (input)="clearTicketError('description')"
+              [class.nx-input-error]="ticketErrors()['description']"
+            ></textarea>
+            @if (ticketErrors()['description']) {
+              <p class="nx-form-error" role="alert">{{ ticketErrors()['description'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-row">
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-t-category">Category</label>
+              <select
+                id="nx-t-category"
+                class="nx-form-input"
+                formControlName="category_id"
+                (change)="clearTicketError('category_id')"
+              >
+                <option [ngValue]="null">—</option>
+                @for (cat of categories(); track cat.id) {
+                  <option [ngValue]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-t-priority">Priority</label>
+              <select
+                id="nx-t-priority"
+                class="nx-form-input"
+                formControlName="priority"
+                (change)="clearTicketError('priority')"
+              >
+                <option value="LOW">Low</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="HIGH">High</option>
+                <option value="URGENT">Urgent</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeTicketForm()">Cancel</app-nx-button>
+            <app-nx-button
+              variant="primary"
+              type="submit"
+              [disabled]="isTicketSubmitting()"
+            >
+              @if (isTicketSubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ editingTicket() ? 'Update Request' : 'Create Request' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Assignment (overlay) ═════════════════════════════════════════ -->
+  @if (isAssignFormOpen()) {
+    <div class="nx-overlay" (click)="closeAssignDialog()" (keydown.escape)="closeAssignDialog()">
+      <div
+        class="nx-dialog nx-dialog-small"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Assign request"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">Assign Request</h2>
+          <button class="nx-dialog-close" (click)="closeAssignDialog()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        @if (assignTarget(); as target) {
+          <p class="nx-stock-target">
+            <span class="nx-stock-target-code nx-mono">{{ target.ticket_number }}</span>
+            {{ target.title }}
+          </p>
+        }
+
+        <form class="nx-dialog-body" [formGroup]="assigneeForm" (ngSubmit)="submitAssignment()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-a-user">Assignee *</label>
+            <select
+              id="nx-a-user"
+              class="nx-form-input"
+              formControlName="user_id"
+              (change)="clearAssignError('user_id')"
+              [class.nx-input-error]="assignErrors()['user_id']"
+            >
+              <option [ngValue]="null">—</option>
+              @for (user of assignees(); track user.id) {
+                <option [ngValue]="user.id">{{ user.name }}</option>
+              }
+            </select>
+            @if (assignErrors()['user_id']) {
+              <p class="nx-form-error" role="alert">{{ assignErrors()['user_id'] }}</p>
+            }
+          </div>
+
+          @if (assignMessage()) {
+            <div class="nx-stock-error" role="alert">
+              <p class="nx-stock-error-title">Unable to update assignment</p>
+              <p class="nx-stock-error-message">{{ assignMessage() }}</p>
+            </div>
+          }
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeAssignDialog()">Cancel</app-nx-button>
+            <app-nx-button variant="primary" type="submit" [disabled]="isAssignSubmitting()">
+              @if (isAssignSubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              Assign
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Category create / edit (overlay) ═════════════════════════════ -->
+  @if (isCategoryFormOpen()) {
+    <div class="nx-overlay" (click)="closeCategoryForm()" (keydown.escape)="closeCategoryForm()">
+      <div
+        class="nx-dialog nx-dialog-small"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="editingCategory() ? 'Edit category' : 'Create category'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ editingCategory() ? 'Edit Category' : 'Create Category' }}</h2>
+          <button class="nx-dialog-close" (click)="closeCategoryForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" [formGroup]="categoryForm" (ngSubmit)="submitCategoryForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-c-name">Name *</label>
+            <input
+              id="nx-c-name"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. Hardware"
+              formControlName="name"
+              (input)="clearCategoryError('name')"
+              [class.nx-input-error]="categoryErrors()['name']"
+              autofocus
+            />
+            @if (categoryErrors()['name']) {
+              <p class="nx-form-error" role="alert">{{ categoryErrors()['name'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-c-code">Code *</label>
+            <input
+              id="nx-c-code"
+              class="nx-form-input nx-mono"
+              type="text"
+              placeholder="e.g. HWR"
+              formControlName="code"
+              (input)="clearCategoryError('code')"
+              [class.nx-input-error]="categoryErrors()['code']"
+            />
+            @if (categoryErrors()['code']) {
+              <p class="nx-form-error" role="alert">{{ categoryErrors()['code'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-c-description">Description</label>
+            <textarea
+              id="nx-c-description"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional description..."
+              formControlName="description"
+            ></textarea>
+          </div>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeCategoryForm()">Cancel</app-nx-button>
+            <app-nx-button variant="primary" type="submit" [disabled]="isCategorySubmitting()">
+              @if (isCategorySubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ editingCategory() ? 'Update Category' : 'Create Category' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Confirm dialog ═══════════════════════════════════════════════ -->
+  <app-nx-confirm-dialog
+    [open]="confirmRequest() !== null"
+    [title]="confirmRequest()?.title ?? ''"
+    [message]="confirmRequest()?.message ?? ''"
+    [confirmLabel]="confirmRequest()?.confirmLabel ?? 'Confirm'"
+    [confirmVariant]="confirmRequest()?.confirmVariant ?? 'danger'"
+    (nxCancel)="closeConfirm()"
+    (confirm)="executeConfirm()"
+  ></app-nx-confirm-dialog>
+
+</div>

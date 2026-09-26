@@ -1,0 +1,192 @@
+// ═══════════════════════════════════════════════════════════════════
+// NEXORA Design Tokens
+// Centralized design token system for the NEXORA Operational
+// Intelligence Workspace.
+// ═══════════════════════════════════════════════════════════════════
+
+// ─── Color Palette ──────────────────────────────────────────────────
+
+// Dark theme (primary)
+$nx-dark-bg: #0B0D10;
+$nx-dark-surface: #111419;
+$nx-dark-surface-elevated: #171B21;
+$nx-dark-border: #242932;
+
+$nx-dark-text: #F3F5F7;
+$nx-dark-text-secondary: #B0B6C0;
+$nx-dark-text-muted: #858C98;
+
+$nx-dark-accent: #E8FF4F;
+
+// Light theme
+$nx-light-bg: #F7F7F5;
+$nx-light-surface: #FFFFFF;
+$nx-light-surface-elevated: #FFFFFF;
+$nx-light-border: #E5E5E0;
+
+$nx-light-text: #151515;
+$nx-light-text-secondary: #555A61;
+$nx-light-text-muted: #777C83;
+
+$nx-light-accent: #A3C400;
+
+// ─── Semantic Colors ────────────────────────────────────────────────
+
+// Dark semantic
+$nx-dark-success: #36D399;
+$nx-dark-warning: #FBBF24;
+$nx-dark-danger: #F87272;
+$nx-dark-info: #60A5FA;
+$nx-dark-neutral: #6B7280;
+
+// Light semantic
+$nx-light-success: #059669;
+$nx-light-warning: #D97706;
+$nx-light-danger: #DC2626;
+$nx-light-info: #2563EB;
+$nx-light-neutral: #9CA3AF;
+
+// ─── Surfaces ───────────────────────────────────────────────────────
+
+// Dark surfaces
+$nx-dark-surface-level-0: $nx-dark-bg;       // page background
+$nx-dark-surface-level-1: $nx-dark-surface;  // cards, panels
+$nx-dark-surface-level-2: $nx-dark-surface-elevated; // elevated cards, dropdowns
+$nx-dark-surface-level-3: #1E2530;           // modal backdrop, hover states
+
+// Light surfaces
+$nx-light-surface-level-0: $nx-light-bg;
+$nx-light-surface-level-1: $nx-light-surface;
+$nx-light-surface-level-2: $nx-light-surface-elevated;
+$nx-light-surface-level-3: #F0F0EB;
+
+// ─── Borders ────────────────────────────────────────────────────────
+
+$nx-dark-border-subtle: #1C2029;
+$nx-dark-border-default: $nx-dark-border;
+$nx-dark-border-strong: #3A4250;
+
+$nx-light-border-subtle: #E8E8E3;
+$nx-light-border-default: $nx-light-border;
+$nx-light-border-strong: #D4D4CC;
+
+// ─── Typography Scale ───────────────────────────────────────────────
+
+$nx-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+$nx-font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+$nx-font-size-xs: 0.6875rem;   // 11px
+$nx-font-size-sm: 0.75rem;     // 12px
+$nx-font-size-base: 0.875rem;  // 14px
+$nx-font-size-md: 1rem;        // 16px
+$nx-font-size-lg: 1.125rem;    // 18px
+$nx-font-size-xl: 1.25rem;     // 20px
+$nx-font-size-2xl: 1.5rem;     // 24px
+$nx-font-size-3xl: 1.875rem;   // 30px
+$nx-font-size-4xl: 2.25rem;    // 36px
+
+$nx-font-weight-normal: 400;
+$nx-font-weight-medium: 500;
+$nx-font-weight-semibold: 600;
+$nx-font-weight-bold: 700;
+
+$nx-line-height-tight: 1.25;
+$nx-line-height-normal: 1.5;
+$nx-line-height-relaxed: 1.625;
+
+// ─── Spacing Scale ──────────────────────────────────────────────────
+
+$nx-space-0: 0;
+$nx-space-1: 2px;
+$nx-space-2: 4px;
+$nx-space-3: 6px;
+$nx-space-4: 8px;
+$nx-space-5: 10px;
+$nx-space-6: 12px;
+$nx-space-8: 16px;
+$nx-space-10: 20px;
+$nx-space-12: 24px;
+$nx-space-16: 32px;
+$nx-space-20: 40px;
+$nx-space-24: 48px;
+$nx-space-32: 64px;
+
+// ─── Radii ──────────────────────────────────────────────────────────
+
+$nx-radius-sm: 4px;
+$nx-radius-md: 6px;
+$nx-radius-lg: 8px;
+$nx-radius-xl: 12px;
+$nx-radius-2xl: 16px;
+$nx-radius-full: 9999px;
+
+// ─── Shadows ────────────────────────────────────────────────────────
+
+$nx-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+$nx-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+$nx-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3), 0 4px 6px rgba(0, 0, 0, 0.2);
+$nx-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.3), 0 8px 10px rgba(0, 0, 0, 0.2);
+$nx-shadow-focus: 0 0 0 2px $nx-dark-accent;
+
+// ─── Transitions ────────────────────────────────────────────────────
+
+$nx-transition-fast: 120ms cubic-bezier(0.4, 0, 0.2, 1);
+$nx-transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+$nx-transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+
+// ─── Z-Index Layers ─────────────────────────────────────────────────
+
+$nx-z-base: 0;
+$nx-z-relative: 1;
+$nx-z-dropdown: 100;
+$nx-z-sticky: 200;
+$nx-z-overlay: 300;
+$nx-z-modal: 400;
+$nx-z-toast: 500;
+$nx-z-tooltip: 600;
+
+// ─── Layout ─────────────────────────────────────────────────────────
+
+$nx-sidebar-width: 232px;
+$nx-sidebar-width-collapsed: 56px;
+$nx-header-height: 48px;
+$nx-max-content-width: 1440px;
+$nx-table-row-height: 36px;
+
+// ─── Status Colors (mapping) ────────────────────────────────────────
+
+// Used by NxBadge and status system
+$nx-statuses: (
+  active: (
+    dark: $nx-dark-success,
+    light: $nx-light-success,
+  ),
+  inactive: (
+    dark: $nx-dark-text-muted,
+    light: $nx-light-text-muted,
+  ),
+  pending: (
+    dark: $nx-dark-warning,
+    light: $nx-light-warning,
+  ),
+  maintenance: (
+    dark: $nx-dark-info,
+    light: $nx-light-info,
+  ),
+  success: (
+    dark: $nx-dark-success,
+    light: $nx-light-success,
+  ),
+  warning: (
+    dark: $nx-dark-warning,
+    light: $nx-light-warning,
+  ),
+  danger: (
+    dark: $nx-dark-danger,
+    light: $nx-light-danger,
+  ),
+  info: (
+    dark: $nx-dark-info,
+    light: $nx-light-info,
+  ),
+);

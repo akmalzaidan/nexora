@@ -1,0 +1,103 @@
+<aside class="nx-sidebar" [class.collapsed]="isCollapsed()">
+  <!-- Logo / Brand -->
+  <div class="nx-sidebar-brand">
+    <div class="nx-sidebar-logo">
+      <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="6" fill="var(--nx-accent)" fill-opacity="0.15"/>
+        <path d="M8 8L24 24M24 8L8 24" stroke="var(--nx-accent)" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    @if (!isCollapsed()) {
+      <span class="nx-sidebar-brand-name">NEXORA</span>
+    }
+  </div>
+
+  <!-- Primary Navigation -->
+  <nav class="nx-sidebar-nav">
+    <ul class="nx-sidebar-list">
+      @for (item of visibleNavItems(); track item.route) {
+        <li class="nx-sidebar-group">
+          <!-- Group with children (e.g. Organization) -->
+          @if (item.children) {
+            <button
+              class="nx-sidebar-item nx-sidebar-item-group"
+              [class.active]="isGroupActive(item.children)"
+              (click)="toggleCollapse()"
+            >
+              <ion-icon [name]="getIcon(item.icon)"></ion-icon>
+              @if (!isCollapsed()) {
+                <span class="nx-sidebar-item-label">{{ item.label }}</span>
+              }
+            </button>
+            <ul class="nx-sidebar-sublist">
+              @for (child of item.children; track child.route) {
+                <li>
+                  <a
+                    class="nx-sidebar-link"
+                    [routerLink]="child.route"
+                    routerLinkActive="active"
+                    [routerLinkActiveOptions]="{ exact: false }"
+                  >
+                    <ion-icon [name]="getIcon(child.icon)"></ion-icon>
+                    @if (!isCollapsed()) {
+                      <span class="nx-sidebar-link-label">{{ child.label }}</span>
+                    }
+                  </a>
+                </li>
+              }
+            </ul>
+          }
+          <!-- Simple link -->
+          @if (!item.children) {
+            <a
+              class="nx-sidebar-link"
+              [routerLink]="item.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: item.route === '/home' }"
+            >
+              <ion-icon [name]="getIcon(item.icon)"></ion-icon>
+              @if (!isCollapsed()) {
+                <span class="nx-sidebar-link-label">{{ item.label }}</span>
+              }
+            </a>
+          }
+        </li>
+      }
+    </ul>
+  </nav>
+
+  <!-- Bottom: Profile -->
+  <div class="nx-sidebar-bottom">
+    <ul class="nx-sidebar-list">
+      @for (item of bottomItems; track item.route) {
+        <li>
+          <a
+            class="nx-sidebar-link"
+            [routerLink]="item.route"
+          >
+            <ion-icon [name]="getIcon(item.icon)"></ion-icon>
+            @if (!isCollapsed()) {
+              <span class="nx-sidebar-link-label">{{ item.label }}</span>
+            }
+            @if (!isCollapsed() && auth.user()) {
+              <div class="nx-sidebar-user-avatar">
+                {{ auth.user()!.name.charAt(0) }}
+              </div>
+            }
+          </a>
+        </li>
+      }
+    </ul>
+    @if (auth.user()) {
+      <div class="nx-sidebar-user">
+        <div class="nx-sidebar-user-avatar">
+          {{ auth.user()!.name.charAt(0) }}
+        </div>
+        <div class="nx-sidebar-user-meta">
+          <span class="nx-sidebar-user-name">{{ auth.user()!.name }}</span>
+          <span class="nx-sidebar-user-role">{{ auth.user()!.role?.slug ?? 'staff' }}</span>
+        </div>
+      </div>
+    }
+  </div>
+</aside>

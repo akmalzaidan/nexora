@@ -1,0 +1,155 @@
+@use 'design-tokens' as *;
+
+:host { display: block; height: 100%; background: var(--nx-bg); color: var(--nx-text); }
+
+.nx-break { overflow-wrap: anywhere; }
+.nx-danger-action { color: var(--nx-danger, #E85C5C); }
+.nx-timestamp { font-size: $nx-font-size-xs; color: var(--nx-text-muted); }
+
+.nx-assets-page { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+.nx-page-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; border-bottom: 1px solid var(--nx-border);
+}
+.nx-page-title, .nx-detail-name, .nx-dialog-title { margin: 0; font-weight: 700; letter-spacing: -.01em; }
+.nx-page-title { font-size: $nx-font-size-xl; }
+.nx-page-actions { display: flex; align-items: center; gap: 6px; }
+
+.nx-cmd-hint {
+  font-family: $nx-font-mono; font-size: $nx-font-size-sm; color: var(--nx-text-muted);
+  padding: 2px 4px; border: 1px solid var(--nx-border); border-radius: $nx-radius-sm; background: var(--nx-surface);
+}
+
+.nx-workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(360px, 38%) 1fr; overflow: hidden; }
+
+// ── Master panel ──────────────────────────────────────────────────────
+
+.nx-master { min-width: 0; border-right: 1px solid var(--nx-border); display: flex; flex-direction: column; overflow: hidden; }
+
+.nx-master-controls { display: flex; flex-direction: column; gap: 6px; padding: 8px; border-bottom: 1px solid var(--nx-border); background: var(--nx-surface); }
+
+.nx-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px; }
+
+.nx-filter-field, .nx-form-field, .nx-qr-form { display: flex; flex-direction: column; gap: 4px; }
+.nx-filter-label, .nx-form-label, .nx-field-label {
+  font-size: $nx-font-size-xs; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--nx-text-muted);
+}
+
+.nx-select, .nx-form-input, .nx-qr-input {
+  width: 100%; box-sizing: border-box; background: var(--nx-bg); color: var(--nx-text);
+  border: 1px solid var(--nx-border); border-radius: $nx-radius-sm; padding: 2px 6px;
+  font-family: inherit; font-size: $nx-font-size-sm; outline: none;
+}
+.nx-select:focus, .nx-form-input:focus, .nx-qr-input:focus { border-color: var(--nx-accent); }
+textarea.nx-form-input { resize: vertical; }
+.nx-input-error { border-color: var(--nx-danger, #E85C5C) !important; }
+.nx-form-error { margin: 0; font-size: $nx-font-size-xs; color: var(--nx-danger, #E85C5C); }
+
+.nx-master-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; padding: 4px; gap: 2px; }
+
+.nx-asset-row {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
+  background: transparent; border: 1px solid transparent; border-radius: $nx-radius-md;
+  padding: 6px; cursor: pointer; font-family: inherit; color: inherit;
+}
+.nx-asset-row:hover, .nx-asset-row.selected { background: var(--nx-surface); }
+.nx-asset-row.selected { border-color: var(--nx-accent); }
+.nx-asset-row:focus-visible { outline: 2px solid var(--nx-accent); outline-offset: -2px; }
+
+.nx-row-line, .nx-row-meta { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.nx-row-meta { font-size: $nx-font-size-xs; color: var(--nx-text-muted); }
+.nx-asset-code { font-size: $nx-font-size-xs; color: var(--nx-text-muted); }
+.nx-asset-name { font-size: $nx-font-size-base; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nx-row-location { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.nx-condition { display: inline-flex; align-items: center; gap: 4px; font-size: $nx-font-size-xs; color: var(--nx-text-muted); text-transform: capitalize; }
+.nx-condition-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--nx-text-muted); flex: none; }
+.nx-condition-dot-excellent, .nx-condition-dot-good { background: #2ECC71; }
+.nx-condition-dot-fair { background: #F5A623; }
+.nx-condition-dot-poor, .nx-condition-dot-damaged, .nx-condition-dot-failed { background: #E85C5C; }
+
+.nx-skeleton-rows, .nx-detail-skeleton { display: flex; flex-direction: column; gap: 6px; padding: 6px; }
+.nx-skeleton-row { display: flex; flex-direction: column; gap: 4px; }
+.nx-skeleton-code { width: 40%; }
+.nx-skeleton-name { width: 70%; }
+.nx-skeleton-badge { width: 25%; }
+.nx-detail-skeleton-title { width: 55%; height: 24px; }
+.nx-detail-skeleton-block { width: 100%; height: 48px; }
+
+.nx-pagination { display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 6px 4px; border-top: 1px solid var(--nx-border); margin-top: auto; }
+.nx-pagination-info, .nx-pagination-current { font-size: $nx-font-size-xs; color: var(--nx-text-muted); }
+.nx-pagination-controls { display: flex; align-items: center; gap: 4px; }
+
+.nx-master-qr { padding: 8px; border-top: 1px solid var(--nx-border); background: var(--nx-surface); }
+.nx-qr-actions, .nx-dialog-footer { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
+
+// ── Detail panel ──────────────────────────────────────────────────────
+
+.nx-detail { min-width: 0; display: flex; flex-direction: column; overflow-y: auto; background: var(--nx-bg); }
+
+.nx-detail-back {
+  display: none; align-items: center; gap: 4px; padding: 6px 8px; border: none; border-bottom: 1px solid var(--nx-border);
+  background: transparent; color: var(--nx-text); font-family: inherit; font-size: $nx-font-size-sm; font-weight: 600; cursor: pointer;
+}
+
+.nx-detail-scroll { padding: 8px 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.nx-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.nx-detail-identifiers, .nx-detail-actions { display: flex; align-items: center; gap: 4px; }
+.nx-detail-code { font-size: $nx-font-size-sm; color: var(--nx-text-muted); }
+.nx-detail-name { font-size: $nx-font-size-lg; line-height: 1.25; margin-bottom: 0; }
+
+.nx-detail-error, .nx-detail-empty { display: flex; align-items: center; justify-content: center; flex: 1; padding: 12px; text-align: center; }
+.nx-detail-empty { flex-direction: column; gap: 6px; }
+.nx-detail-empty-icon { font-size: 40px; color: var(--nx-text-muted); }
+.nx-detail-empty-title { margin: 0; font-size: $nx-font-size-base; font-weight: 600; }
+.nx-detail-empty-desc { margin: 0; max-width: 34ch; font-size: $nx-font-size-sm; color: var(--nx-text-muted); }
+
+.nx-detail-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 6px; }
+.nx-detail-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 6px; border: 1px solid var(--nx-border); border-radius: $nx-radius-md; background: var(--nx-bg); }
+.nx-field-value { font-size: $nx-font-size-sm; line-height: 1.4; }
+
+.nx-assignment-status { display: inline-flex; align-items: center; gap: 4px; }
+.nx-assignment-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--nx-text-muted); }
+.nx-assignment-dot.assigned { background: #3DD68C; }
+
+// ── Overlays & dialogs ────────────────────────────────────────────────
+
+.nx-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 8px; background: rgba(0, 0, 0, .55); }
+
+.nx-dialog { width: 100%; max-width: 560px; max-height: calc(100vh - #{$nx-space-8 * 2}); overflow-y: auto; background: var(--nx-surface); border: 1px solid var(--nx-border); border-radius: $nx-radius-lg; box-shadow: 0 24px 64px rgba(0, 0, 0, .35); }
+.nx-dialog-assign { max-width: 460px; }
+
+.nx-dialog-header { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-bottom: 1px solid var(--nx-border); }
+.nx-dialog-title { font-size: $nx-font-size-lg; }
+.nx-dialog-close { background: transparent; border: none; color: var(--nx-text-muted); font-size: $nx-font-size-lg; cursor: pointer; padding: 2px; display: inline-flex; align-items: center; }
+.nx-dialog-close:hover { color: var(--nx-text); }
+
+.nx-dialog-body { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+.nx-dialog-footer { padding-top: 4px; }
+.nx-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+.nx-assign-target { margin: 0; display: flex; flex-direction: column; gap: 2px; padding: 6px; border: 1px solid var(--nx-border); border-radius: $nx-radius-md; background: var(--nx-bg); font-size: $nx-font-size-sm; font-weight: 600; }
+.nx-assign-target-code { font-size: $nx-font-size-xs; font-weight: 400; color: var(--nx-text-muted); }
+
+// ── Responsive ────────────────────────────────────────────────────────
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .nx-workspace { grid-template-columns: minmax(280px, 32%) 1fr; }
+}
+
+@media (max-width: 767px) {
+  .nx-assets-page { overflow: hidden; }
+  .nx-page-header { padding: 6px 8px; }
+  .nx-page-title { font-size: $nx-font-size-lg; }
+  .nx-cmd-hint { display: none; }
+  .nx-workspace { display: block; }
+  .nx-detail { position: absolute; inset: 0; z-index: 10; background: var(--nx-bg); transform: translateX(100%); transition: transform 200ms ease; }
+  .nx-workspace.detail-open .nx-master { display: none; }
+  .nx-workspace.detail-open .nx-detail { transform: translateX(0); }
+  .nx-detail-back { display: inline-flex; }
+  .nx-detail-scroll { padding: 6px 8px 10px; }
+  .nx-form-row { grid-template-columns: 1fr; }
+  .nx-filters { grid-template-columns: 1fr 1fr; }
+  .nx-filters .nx-filter-field:last-child { grid-column: span 2; }
+}

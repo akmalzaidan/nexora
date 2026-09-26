@@ -1,0 +1,24 @@
+<div class="nx-master-detail">
+  <!-- Master List Panel -->
+  <div class="nx-master-panel">
+    <div class="nx-master-header">
+      <ng-content select="[nx-master-header]"></ng-content>
+    </div>
+    <div class="nx-master-body">
+      <ng-content select="[nx-master-content]"></ng-content>
+    </div>
+  </div>
+
+  <!-- Detail Panel -->
+  <div class="nx-detail-panel" [class.visible]="detailVisible">
+    <div class="nx-detail-header">
+      <button class="nx-detail-close" (click)="closeDetail()" aria-label="Close detail">
+        <ion-icon name="close-outline"></ion-icon>
+      </button>
+      <ng-content select="[nx-detail-header]"></ng-content>
+    </div>
+    <div class="nx-detail-body">
+      <ng-content select="[nx-detail-content]"></ng-content>
+    </div>
+  </div>
+</div>

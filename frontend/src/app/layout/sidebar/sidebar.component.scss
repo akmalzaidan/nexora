@@ -1,0 +1,249 @@
+// ═══════════════════════════════════════════════════════════════════
+// Sidebar Component Styles
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+
+.nx-sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: $nx-sidebar-width;
+  background: var(--nx-surface);
+  border-right: 1px solid var(--nx-border-subtle);
+  display: flex;
+  flex-direction: column;
+  z-index: $nx-z-sticky;
+  transition: width $nx-transition-normal;
+
+  &.collapsed {
+    width: $nx-sidebar-width-collapsed;
+
+    .nx-sidebar-brand-name,
+    .nx-sidebar-link-label,
+    .nx-sidebar-item-label,
+    .nx-sidebar-sublist,
+    .nx-sidebar-user-avatar,
+    .nx-sidebar-user-meta {
+      display: none;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    // Tablet: collapsed by default, expandable via gesture
+    width: $nx-sidebar-width-collapsed;
+
+    .nx-sidebar-brand-name,
+    .nx-sidebar-link-label,
+    .nx-sidebar-item-label,
+    .nx-sidebar-sublist,
+    .nx-sidebar-user-avatar,
+    .nx-sidebar-user-meta {
+      display: none;
+    }
+
+    &.expanded {
+      width: $nx-sidebar-width;
+    }
+  }
+}
+
+// ─── Brand ───────────────────────────────────────────────────────────
+
+.nx-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  padding: $nx-space-5 $nx-space-4;
+  border-bottom: 1px solid var(--nx-border-subtle);
+}
+
+.nx-sidebar-logo {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.nx-sidebar-logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.nx-sidebar-brand-name {
+  font-family: $nx-font-sans;
+  font-size: $nx-font-size-md;
+  font-weight: $nx-font-weight-bold;
+  color: var(--nx-text);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+// ─── Navigation ─────────────────────────────────────────────────────
+
+.nx-sidebar-nav {
+  flex: 1;
+  padding: $nx-space-3 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.nx-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nx-sidebar-group {
+  margin-bottom: $nx-space-1;
+}
+
+// Group header (expandable)
+.nx-sidebar-item-group {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  width: 100%;
+  padding: $nx-space-2 $nx-space-4;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font-family: $nx-font-sans;
+  font-size: $nx-font-size-sm;
+  color: var(--nx-text-secondary);
+  border-radius: $nx-radius-md;
+  transition: background $nx-transition-fast, color $nx-transition-fast;
+
+  ion-icon {
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .nx-sidebar-item-label {
+    font-weight: $nx-font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: $nx-font-size-xs;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--nx-surface-level-3) 50%, transparent);
+    color: var(--nx-text);
+  }
+}
+
+// Sublist
+.nx-sidebar-sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 $nx-space-3;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height $nx-transition-normal;
+
+  .nx-sidebar-item-group:hover &,
+  .nx-sidebar-item-group:focus-within & {
+    max-height: 200px;
+  }
+}
+
+// Link
+.nx-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  width: 100%;
+  padding: $nx-space-2 $nx-space-4;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--nx-text-secondary);
+  font-family: $nx-font-sans;
+  font-size: $nx-font-size-sm;
+  border-radius: $nx-radius-md;
+  transition: background $nx-transition-fast, color $nx-transition-fast;
+
+  ion-icon {
+    font-size: 17px;
+    flex-shrink: 0;
+  }
+
+  .nx-sidebar-link-label {
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--nx-surface-level-3) 50%, transparent);
+    color: var(--nx-text);
+  }
+
+  &.active {
+    background: var(--nx-accent-subtle);
+    color: var(--nx-accent);
+
+    ion-icon {
+      color: var(--nx-accent);
+    }
+  }
+}
+
+// ─── Bottom ──────────────────────────────────────────────────────────
+
+.nx-sidebar-bottom {
+  padding: $nx-space-3 0;
+  border-top: 1px solid var(--nx-border-subtle);
+}
+
+.nx-sidebar-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: $nx-radius-full;
+  background: var(--nx-accent);
+  color: var(--nx-bg);
+  font-size: $nx-font-size-xs;
+  font-weight: $nx-font-weight-bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+}
+
+// Authenticated user card (sidebar bottom)
+.nx-sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: $nx-space-3;
+  padding: $nx-space-2 $nx-space-4;
+  border-top: 1px solid var(--nx-border-subtle);
+
+  .nx-sidebar-user-avatar {
+    margin-left: 0;
+    flex-shrink: 0;
+  }
+}
+
+.nx-sidebar-user-meta {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+.nx-sidebar-user-name {
+  font-size: $nx-font-size-xs;
+  font-weight: $nx-font-weight-semibold;
+  color: var(--nx-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nx-sidebar-user-role {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--nx-text-muted);
+}

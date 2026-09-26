@@ -1,0 +1,107 @@
+// ═══════════════════════════════════════════════════════════════════
+// Master-Detail Layout Styles
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+
+.nx-master-detail {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $nx-space-4;
+  height: 100%;
+  min-height: 400px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: minmax(280px, 360px) 1fr;
+
+    &.detail-open {
+      grid-template-columns: minmax(280px, 360px) 1fr;
+    }
+  }
+}
+
+// ─── Master Panel ────────────────────────────────────────────────────
+
+.nx-master-panel {
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-lg;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.nx-master-header {
+  padding: $nx-space-4;
+  border-bottom: 1px solid var(--nx-border-subtle);
+}
+
+.nx-master-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: $nx-space-2;
+}
+
+// ─── Detail Panel ────────────────────────────────────────────────────
+
+.nx-detail-panel {
+  background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-lg;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $nx-transition-normal, visibility $nx-transition-normal;
+  min-height: 0;
+
+  @media (min-width: 768px) {
+    opacity: 1;
+    visibility: visible;
+    transition: none;
+  }
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.nx-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $nx-space-4;
+  border-bottom: 1px solid var(--nx-border-subtle);
+}
+
+.nx-detail-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--nx-text-muted);
+  border-radius: $nx-radius-sm;
+  transition: background $nx-transition-fast, color $nx-transition-fast;
+
+  ion-icon {
+    font-size: 18px;
+  }
+
+  &:hover {
+    background: color-mix(in srgb, var(--nx-surface-level-3) 50%, transparent);
+    color: var(--nx-text);
+  }
+}
+
+.nx-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: $nx-space-4;
+}

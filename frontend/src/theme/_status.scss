@@ -1,0 +1,130 @@
+// ═══════════════════════════════════════════════════════════════════
+// NEXORA Status System
+// Centralized semantic status styling.
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+// ─── Status Colors (CSS custom properties) ──────────────────────────
+
+:root[data-theme='dark'] {
+  --nx-status-active:    #36D399;
+  --nx-status-inactive:  #6B7280;
+  --nx-status-pending:   #FBBF24;
+  --nx-status-maintenance: #60A5FA;
+  --nx-status-success:   #36D399;
+  --nx-status-warning:   #FBBF24;
+  --nx-status-danger:    #F87272;
+  --nx-status-info:      #60A5FA;
+}
+
+:root[data-theme='light'] {
+  --nx-status-active:    #059669;
+  --nx-status-inactive:  #9CA3AF;
+  --nx-status-pending:   #D97706;
+  --nx-status-maintenance: #2563EB;
+  --nx-status-success:   #059669;
+  --nx-status-warning:   #D97706;
+  --nx-status-danger:    #DC2626;
+  --nx-status-info:      #2563EB;
+}
+
+// ─── Status Badge Base ─────────────────────────────────────────────
+
+.nx-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $nx-space-1;
+  padding: $nx-space-1 $nx-space-2;
+  border-radius: $nx-radius-full;
+  font-size: $nx-font-size-xs;
+  font-weight: $nx-font-weight-medium;
+  line-height: 1;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+// ─── Status Variants ───────────────────────────────────────────────
+
+.nx-status-active,
+.nx-badge-active {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-active) 15%, transparent);
+  color: var(--nx-status-active);
+  border: 1px solid color-mix(in srgb, var(--nx-status-active) 25%, transparent);
+}
+
+.nx-status-inactive,
+.nx-badge-inactive {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-inactive) 12%, transparent);
+  color: var(--nx-status-inactive);
+  border: 1px solid color-mix(in srgb, var(--nx-status-inactive) 20%, transparent);
+}
+
+.nx-status-pending,
+.nx-badge-pending {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-pending) 15%, transparent);
+  color: var(--nx-status-pending);
+  border: 1px solid color-mix(in srgb, var(--nx-status-pending) 25%, transparent);
+}
+
+.nx-status-maintenance,
+.nx-badge-maintenance {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-maintenance) 15%, transparent);
+  color: var(--nx-status-maintenance);
+  border: 1px solid color-mix(in srgb, var(--nx-status-maintenance) 25%, transparent);
+}
+
+.nx-status-success,
+.nx-badge-success {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-success) 15%, transparent);
+  color: var(--nx-status-success);
+  border: 1px solid color-mix(in srgb, var(--nx-status-success) 25%, transparent);
+}
+
+.nx-status-warning,
+.nx-badge-warning {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-warning) 15%, transparent);
+  color: var(--nx-status-warning);
+  border: 1px solid color-mix(in srgb, var(--nx-status-warning) 25%, transparent);
+}
+
+.nx-status-danger,
+.nx-badge-danger {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-danger) 15%, transparent);
+  color: var(--nx-status-danger);
+  border: 1px solid color-mix(in srgb, var(--nx-status-danger) 25%, transparent);
+}
+
+.nx-status-info,
+.nx-badge-info {
+  @extend .nx-status-badge;
+  background: color-mix(in srgb, var(--nx-status-info) 15%, transparent);
+  color: var(--nx-status-info);
+  border: 1px solid color-mix(in srgb, var(--nx-status-info) 25%, transparent);
+}
+
+// ─── Status Dot ─────────────────────────────────────────────────────
+
+.nx-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: $nx-radius-full;
+  flex-shrink: 0;
+}
+
+.nx-status-dot-active    { background: var(--nx-status-active); }
+.nx-status-dot-inactive  { background: var(--nx-status-inactive); }
+.nx-status-dot-pending   { background: var(--nx-status-pending); }
+.nx-status-dot-maintenance { background: var(--nx-status-maintenance); }
+.nx-status-dot-success   { background: var(--nx-status-success); }
+.nx-status-dot-warning   { background: var(--nx-status-warning); }
+.nx-status-dot-danger    { background: var(--nx-status-danger); }
+.nx-status-dot-info      { background: var(--nx-status-info); }

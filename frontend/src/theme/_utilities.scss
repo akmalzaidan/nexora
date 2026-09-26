@@ -1,0 +1,173 @@
+// ═══════════════════════════════════════════════════════════════════
+// NEXORA Utility Classes
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+// ─── Flex ───────────────────────────────────────────────────────────
+
+.nx-flex          { display: flex; }
+.nx-flex-col      { display: flex; flex-direction: column; }
+.nx-flex-wrap     { flex-wrap: wrap; }
+.nx-items-center  { align-items: center; }
+.nx-items-start   { align-items: flex-start; }
+.nx-items-end     { align-items: flex-end; }
+.nx-justify-center { justify-content: center; }
+.nx-justify-between { justify-content: space-between; }
+.nx-justify-end   { justify-content: flex-end; }
+.nx-gap-1         { gap: $nx-space-1; }
+.nx-gap-2         { gap: $nx-space-2; }
+.nx-gap-3         { gap: $nx-space-3; }
+.nx-gap-4         { gap: $nx-space-4; }
+.nx-gap-6         { gap: $nx-space-6; }
+.nx-gap-8         { gap: $nx-space-8; }
+
+// ─── Grid ───────────────────────────────────────────────────────────
+
+.nx-grid {
+  display: grid;
+  gap: $nx-space-4;
+}
+
+// ─── Spacing ────────────────────────────────────────────────────────
+
+.nx-m-0  { margin: $nx-space-0; }
+.nx-m-1  { margin: $nx-space-1; }
+.nx-m-2  { margin: $nx-space-2; }
+.nx-m-3  { margin: $nx-space-3; }
+.nx-m-4  { margin: $nx-space-4; }
+.nx-m-6  { margin: $nx-space-6; }
+.nx-m-8  { margin: $nx-space-8; }
+
+.nx-mt-1 { margin-top: $nx-space-1; }
+.nx-mt-2 { margin-top: $nx-space-2; }
+.nx-mt-3 { margin-top: $nx-space-3; }
+.nx-mt-4 { margin-top: $nx-space-4; }
+.nx-mt-6 { margin-top: $nx-space-6; }
+.nx-mt-8 { margin-top: $nx-space-8; }
+.nx-mt-12 { margin-top: $nx-space-12; }
+.nx-mt-16 { margin-top: $nx-space-16; }
+
+.nx-mb-1 { margin-bottom: $nx-space-1; }
+.nx-mb-2 { margin-bottom: $nx-space-2; }
+.nx-mb-3 { margin-bottom: $nx-space-3; }
+.nx-mb-4 { margin-bottom: $nx-space-4; }
+.nx-mb-6 { margin-bottom: $nx-space-6; }
+.nx-mb-8 { margin-bottom: $nx-space-8; }
+.nx-mb-12 { margin-bottom: $nx-space-12; }
+
+.nx-mr-1 { margin-right: $nx-space-1; }
+.nx-mr-2 { margin-right: $nx-space-2; }
+.nx-mr-3 { margin-right: $nx-space-3; }
+.nx-mr-4 { margin-right: $nx-space-4; }
+
+.nx-ml-1 { margin-left: $nx-space-1; }
+.nx-ml-2 { margin-left: $nx-space-2; }
+.nx-ml-3 { margin-left: $nx-space-3; }
+.nx-ml-4 { margin-left: $nx-space-4; }
+
+.nx-p-0  { padding: $nx-space-0; }
+.nx-p-2  { padding: $nx-space-2; }
+.nx-p-3  { padding: $nx-space-3; }
+.nx-p-4  { padding: $nx-space-4; }
+.nx-p-6  { padding: $nx-space-6; }
+.nx-p-8  { padding: $nx-space-8; }
+
+.nx-pt-2 { padding-top: $nx-space-2; }
+.nx-pt-3 { padding-top: $nx-space-3; }
+.nx-pt-4 { padding-top: $nx-space-4; }
+.nx-pt-6 { padding-top: $nx-space-6; }
+
+.nx-pb-2 { padding-bottom: $nx-space-2; }
+.nx-pb-3 { padding-bottom: $nx-space-3; }
+.nx-pb-4 { padding-bottom: $nx-space-4; }
+.nx-pb-6 { padding-bottom: $nx-space-6; }
+
+.nx-pl-2 { padding-left: $nx-space-2; }
+.nx-pl-3 { padding-left: $nx-space-3; }
+.nx-pl-4 { padding-left: $nx-space-4; }
+
+.nx-pr-2 { padding-right: $nx-space-2; }
+.nx-pr-3 { padding-right: $nx-space-3; }
+.nx-pr-4 { padding-right: $nx-space-4; }
+
+// ─── Sizing ─────────────────────────────────────────────────────────
+
+.nx-w-full   { width: 100%; }
+.nx-h-full   { height: 100%; }
+.nx-min-h-screen { min-height: 100vh; }
+
+// ─── Text ───────────────────────────────────────────────────────────
+
+.nx-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nx-text-center { text-align: center; }
+.nx-text-right  { text-align: right; }
+
+// ─── Display ────────────────────────────────────────────────────────
+
+.nx-hidden        { display: none; }
+.nx-block         { display: block; }
+.nx-inline-block  { display: inline-block; }
+.nx-flex          { display: flex; }
+
+// Responsive display
+@media (max-width: 767px) {
+  .nx-hide-mobile { display: none !important; }
+}
+
+@media (min-width: 768px) {
+  .nx-hide-tablet-up { display: none !important; }
+}
+
+@media (min-width: 1024px) {
+  .nx-hide-desktop { display: none !important; }
+}
+
+// ─── Border ─────────────────────────────────────────────────────────
+
+.nx-border          { border: 1px solid var(--nx-border); }
+.nx-border-t        { border-top: 1px solid var(--nx-border); }
+.nx-border-b        { border-bottom: 1px solid var(--nx-border); }
+.nx-border-l        { border-left: 1px solid var(--nx-border); }
+.nx-border-r        { border-right: 1px solid var(--nx-border); }
+.nx-border-none     { border: none; }
+
+// ─── Radius ─────────────────────────────────────────────────────────
+
+.nx-rounded       { border-radius: $nx-radius-md; }
+.nx-rounded-sm    { border-radius: $nx-radius-sm; }
+.nx-rounded-lg    { border-radius: $nx-radius-lg; }
+.nx-rounded-xl    { border-radius: $nx-radius-xl; }
+.nx-rounded-full  { border-radius: $nx-radius-full; }
+
+// ─── Overflow ───────────────────────────────────────────────────────
+
+.nx-overflow-hidden { overflow: hidden; }
+.nx-overflow-auto   { overflow: auto; }
+
+// ─── Cursor ─────────────────────────────────────────────────────────
+
+.nx-cursor-pointer { cursor: pointer; }
+.nx-cursor-default { cursor: default; }
+
+// ─── Transition ─────────────────────────────────────────────────────
+
+.nx-transition {
+  transition: all $nx-transition-normal;
+}
+
+// ─── Position ───────────────────────────────────────────────────────
+
+.nx-relative { position: relative; }
+.nx-absolute { position: absolute; }
+.nx-fixed   { position: fixed; }
+.nx-sticky  { position: sticky; }
+
+// ─── Pointer Events ─────────────────────────────────────────────────
+
+.nx-pointer-events-none { pointer-events: none; }

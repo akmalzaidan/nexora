@@ -1,0 +1,216 @@
+// ═══════════════════════════════════════════════════════════════════
+// Command Palette Component Styles
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+
+.nx-command-palette {
+  position: fixed;
+  top: 120px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-12px);
+  width: min(560px, calc(100vw - 32px));
+  background: var(--nx-surface-elevated);
+  border: 1px solid var(--nx-border);
+  border-radius: $nx-radius-xl;
+  box-shadow: $nx-shadow-xl;
+  z-index: $nx-z-modal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity $nx-transition-normal, transform $nx-transition-normal, visibility $nx-transition-normal;
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  // ─── Trigger (shown when closed) ─────────────────────────────────
+  .nx-cp-trigger {
+    display: flex;
+    align-items: center;
+    gap: $nx-space-2;
+    padding: $nx-space-3 $nx-space-4;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+
+  .nx-cp-label {
+    font-size: $nx-font-size-sm;
+    color: var(--nx-text-muted);
+    margin-left: $nx-space-2;
+  }
+
+  // ─── Search ───────────────────────────────────────────────────────
+  .nx-cp-search {
+    display: flex;
+    align-items: center;
+    gap: $nx-space-3;
+    padding: $nx-space-3 $nx-space-4;
+    border-bottom: 1px solid var(--nx-border-subtle);
+  }
+
+  .nx-search-icon {
+    color: var(--nx-text-muted);
+    font-size: 18px;
+  }
+
+  .nx-cp-search-input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-family: $nx-font-sans;
+    font-size: $nx-font-size-base;
+    color: var(--nx-text);
+    outline: none;
+
+    &::placeholder {
+      color: var(--nx-text-muted);
+    }
+  }
+
+  .nx-cp-search-clear {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--nx-text-muted);
+    padding: $nx-space-1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $nx-radius-sm;
+    font-size: 16px;
+    transition: color $nx-transition-fast;
+
+    &:hover {
+      color: var(--nx-text);
+    }
+  }
+
+  // ─── Results ──────────────────────────────────────────────────────
+  .nx-cp-results {
+    max-height: 360px;
+    overflow-y: auto;
+    padding: $nx-space-2;
+  }
+
+  .nx-cp-group {
+    margin-bottom: $nx-space-2;
+  }
+
+  .nx-cp-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .nx-cp-group-header {
+    display: flex;
+    align-items: center;
+    gap: $nx-space-2;
+    padding: $nx-space-2 $nx-space-3;
+    font-size: $nx-font-size-xs;
+    font-weight: $nx-font-weight-semibold;
+    color: var(--nx-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: $nx-space-1;
+
+    ion-icon {
+      font-size: 12px;
+    }
+  }
+
+  .nx-cp-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: $nx-space-2 $nx-space-3;
+    background: transparent;
+    border: none;
+    border-radius: $nx-radius-md;
+    cursor: pointer;
+    text-align: left;
+    transition: background $nx-transition-fast;
+
+    &:hover {
+      background: color-mix(in srgb, var(--nx-surface-level-3) 70%, transparent);
+    }
+
+    &.active {
+      background: var(--nx-accent-subtle);
+      color: var(--nx-accent);
+
+      .nx-cp-item-label {
+        color: var(--nx-accent);
+      }
+
+      .nx-cp-item-hint {
+        color: color-mix(in srgb, var(--nx-accent) 70%, black);
+      }
+    }
+  }
+
+  .nx-cp-item-label {
+    font-size: $nx-font-size-sm;
+    font-weight: $nx-font-weight-medium;
+    color: var(--nx-text);
+    flex: 1;
+  }
+
+  .nx-cp-item-hint {
+    margin-left: $nx-space-3;
+  }
+
+  // ─── Empty State ──────────────────────────────────────────────────
+  .nx-cp-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: $nx-space-8;
+    gap: $nx-space-3;
+    color: var(--nx-text-muted);
+    font-size: $nx-font-size-sm;
+  }
+
+  .nx-cp-empty-icon {
+    color: var(--nx-text-muted);
+    opacity: 0.4;
+    font-size: 24px;
+  }
+
+  // ─── Footer ───────────────────────────────────────────────────────
+  .nx-cp-footer {
+    display: flex;
+    align-items: center;
+    gap: $nx-space-4;
+    padding: $nx-space-2 $nx-space-4;
+    border-top: 1px solid var(--nx-border-subtle);
+    font-size: $nx-font-size-xs;
+    color: var(--nx-text-muted);
+
+    span {
+      display: flex;
+      align-items: center;
+      gap: $nx-space-1;
+    }
+  }
+}
+
+// Responsive: reposition on mobile
+@media (max-width: 767px) {
+  .nx-command-palette {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: translateY(100%);
+    width: 100%;
+    border-radius: $nx-radius-xl $nx-radius-xl 0 0;
+    max-height: 70vh;
+
+    &.open {
+      transform: translateY(0);
+    }
+  }
+}

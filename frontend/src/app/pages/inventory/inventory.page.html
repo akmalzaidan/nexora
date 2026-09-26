@@ -1,0 +1,1132 @@
+<div class="nx-inv-page">
+
+  <!-- ═══ Page header ══════════════════════════════════════════════════ -->
+  <header class="nx-page-header">
+    <div class="nx-page-heading">
+      <h1 class="nx-page-title">Inventory</h1>
+      <p class="nx-page-sub">Stock and warehouse operations</p>
+    </div>
+    <div class="nx-page-actions">
+      <app-nx-button
+        variant="ghost"
+        size="sm"
+        class="nx-cmd-trigger"
+        (nxClick)="openPalette()"
+        aria-label="Open command palette"
+      >
+        <span class="nx-cmd-hint">⌘K</span>
+      </app-nx-button>
+
+      <ng-container *appNxHasPermission="'manage_inventory'">
+        <app-nx-button variant="primary" size="sm" (nxClick)="openCreateItemForm()">
+          <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+          New Item
+        </app-nx-button>
+      </ng-container>
+    </div>
+  </header>
+
+  <!-- ═══ Summary strip ════════════════════════════════════════════════ -->
+  <div class="nx-summary" aria-label="Inventory summary">
+    <div class="nx-summary-item">
+      <span class="nx-summary-label">Items</span>
+      <span class="nx-summary-value nx-mono">{{ itemsTotal().toLocaleString() }}</span>
+    </div>
+    <div class="nx-summary-item">
+      <span class="nx-summary-label">Categories</span>
+      <span class="nx-summary-value nx-mono">{{ categoriesTotal().toLocaleString() }}</span>
+    </div>
+    <div class="nx-summary-item">
+      <span class="nx-summary-label">Warehouses</span>
+      <span class="nx-summary-value nx-mono">{{ warehousesTotal().toLocaleString() }}</span>
+    </div>
+    <div class="nx-summary-item">
+      <span class="nx-summary-label">Movements</span>
+      <span class="nx-summary-value nx-mono">{{ movementsTotal().toLocaleString() }}</span>
+    </div>
+  </div>
+
+  <!-- ═══ Tabs ═════════════════════════════════════════════════════════ -->
+  <nav class="nx-tabs" role="tablist" aria-label="Inventory sections">
+    @for (tab of ['items', 'categories', 'warehouses', 'movements']; track tab) {
+      <button
+        type="button"
+        class="nx-tab"
+        [class.active]="activeView() === tab"
+        role="tab"
+        [attr.aria-selected]="activeView() === tab"
+        (click)="setView($any(tab))"
+      >
+        @switch (tab) {
+          @case ('items') { Items }
+          @case ('categories') { Categories }
+          @case ('warehouses') { Warehouses }
+          @case ('movements') { Movements }
+        }
+      </button>
+    }
+  </nav>
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       ITEMS — master / detail workspace
+       ══════════════════════════════════════════════════════════════════ -->
+  @if (activeView() === 'items') {
+    <div class="nx-workspace" [class.detail-open]="selectedItemId() !== null">
+
+      <!-- ─── Master panel ─────────────────────────────────────────── -->
+      <section class="nx-master" aria-label="Item list panel">
+
+        <div class="nx-master-controls">
+          <app-nx-search
+            placeholder="Search items..."
+            [value]="searchQuery()"
+            (nxSearch)="onSearch($event)"
+          ></app-nx-search>
+
+          <div class="nx-filters">
+            <div class="nx-filter-field">
+              <label class="nx-filter-label" for="nx-filter-category">Category</label>
+              <select
+                id="nx-filter-category"
+                class="nx-select"
+                [value]="categoryFilter() || ''"
+                (change)="setCategoryFilter($any($event.target).value)"
+              >
+                <option value="">All categories</option>
+                @for (cat of categories(); track cat.id) {
+                  <option [value]="cat.id">{{ cat.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="nx-filter-field">
+              <label class="nx-filter-label" for="nx-filter-warehouse">Warehouse</label>
+              <select
+                id="nx-filter-warehouse"
+                class="nx-select"
+                [value]="warehouseFilter() || ''"
+                (change)="setWarehouseFilter($any($event.target).value)"
+              >
+                <option value="">All warehouses</option>
+                @for (wh of warehouses(); track wh.id) {
+                  <option [value]="wh.id">{{ wh.name }}</option>
+                }
+              </select>
+            </div>
+          </div>
+
+          @if (activeFilterCount() > 0) {
+            <div class="nx-filter-actions">
+              <app-nx-button variant="ghost" size="sm" (nxClick)="clearFilters()">
+                Clear filters ({{ activeFilterCount() }})
+              </app-nx-button>
+            </div>
+          }
+        </div>
+
+        <div class="nx-master-list">
+          @if (itemsLoading() && items().length === 0) {
+            <app-nx-loading-state mode="skeleton">
+              <div class="nx-skeleton-rows">
+                @for (i of skeletonRows; track i) {
+                  <div class="nx-skeleton-row">
+                    <span class="nx-skeleton nx-skeleton-code"></span>
+                    <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                    <span class="nx-skeleton nx-skeleton-badge"></span>
+                  </div>
+                }
+              </div>
+            </app-nx-loading-state>
+          }
+
+          @if (!itemsLoading() && items().length === 0 && itemsError(); as error) {
+            <app-nx-error-state
+              title="UNABLE TO LOAD ITEMS"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="refreshItems()"
+            ></app-nx-error-state>
+          }
+
+          @if (!itemsLoading() && items().length === 0 && itemsError() === null) {
+            <app-nx-empty-state
+              icon="cube-outline"
+              [title]="searchQuery() || categoryFilter() || warehouseFilter() ? 'NO MATCHING ITEMS' : 'NO INVENTORY ITEMS'"
+              [description]="searchQuery() || categoryFilter() || warehouseFilter() ? 'Try adjusting your search or filters.' : 'Create your first item to start tracking stock.'"
+              [showActions]="hasManageInventory()"
+            >
+              <ng-container *appNxHasPermission="'manage_inventory'">
+                <app-nx-button variant="primary" nx-empty-action (nxClick)="openCreateItemForm()">
+                  Create Item
+                </app-nx-button>
+              </ng-container>
+            </app-nx-empty-state>
+          }
+
+          @for (item of items(); track trackByItemId($index, item)) {
+            <button
+              type="button"
+              class="nx-item-row"
+              [class.selected]="item.id === selectedItemId()"
+              (click)="selectItem(item.id)"
+              [attr.aria-pressed]="item.id === selectedItemId()"
+              [attr.aria-label]="'View ' + item.name"
+            >
+              <span class="nx-row-line">
+                <span class="nx-sku nx-mono">{{ item.sku }}</span>
+                <app-nx-badge [status]="item.is_active ? 'active' : 'inactive'">
+                  {{ item.is_active ? 'Active' : 'Inactive' }}
+                </app-nx-badge>
+              </span>
+              <span class="nx-item-name">{{ item.name }}</span>
+              <span class="nx-row-meta">
+                <span class="nx-row-category">{{ item.category?.name ?? 'No category' }}</span>
+                <span class="nx-row-stock nx-mono">{{ item.stock.total.toLocaleString() }} <span class="nx-row-unit">/ {{ item.unit }}</span></span>
+              </span>
+            </button>
+          }
+
+          @if (!itemsLoading() && items().length > 0) {
+            <div class="nx-pagination">
+              <span class="nx-pagination-info">Showing {{ items().length }} of {{ itemsTotal() }}</span>
+              <div class="nx-pagination-controls">
+                <app-nx-button
+                  variant="ghost"
+                  size="sm"
+                  [disabled]="currentPage() <= 1"
+                  (nxClick)="goToPage(currentPage() - 1)"
+                  aria-label="Previous page"
+                >Prev</app-nx-button>
+                <span class="nx-pagination-current">Page {{ currentPage() }} of {{ lastPage() }}</span>
+                <app-nx-button
+                  variant="ghost"
+                  size="sm"
+                  [disabled]="currentPage() >= lastPage()"
+                  (nxClick)="goToPage(currentPage() + 1)"
+                  aria-label="Next page"
+                >Next</app-nx-button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+
+      <!-- ─── Detail panel ─────────────────────────────────────────── -->
+      <section class="nx-detail" aria-label="Item detail">
+
+        <button class="nx-detail-back" (click)="clearSelection()" aria-label="Back to item list">
+          <ion-icon name="arrow-back-outline" aria-hidden="true"></ion-icon>
+          Items
+        </button>
+
+        @if (selectedItemId() !== null && detailLoading()) {
+          <app-nx-loading-state mode="skeleton">
+            <div class="nx-detail-skeleton">
+              <span class="nx-skeleton nx-detail-skeleton-title"></span>
+              <span class="nx-skeleton nx-detail-skeleton-block"></span>
+              <span class="nx-skeleton nx-detail-skeleton-block"></span>
+            </div>
+          </app-nx-loading-state>
+        }
+
+        @if (detailError(); as error) {
+          <div class="nx-detail-error">
+            <app-nx-error-state
+              title="UNABLE TO LOAD DETAIL"
+              [message]="error.message"
+              [showRetry]="true"
+              (nxRetry)="retryDetail()"
+            ></app-nx-error-state>
+          </div>
+        }
+
+        @if (selectedItemId() === null && !detailLoading()) {
+          <div class="nx-detail-empty">
+            <div class="nx-detail-empty-icon">
+              <ion-icon name="cube-outline" aria-hidden="true"></ion-icon>
+            </div>
+            <h3 class="nx-detail-empty-title">Select an item</h3>
+            <p class="nx-detail-empty-desc">Choose an item from the list to view its properties and warehouse stock breakdown.</p>
+          </div>
+        }
+
+        @if (selectedItem(); as item) {
+          <div class="nx-detail-scroll">
+
+            <div class="nx-detail-header">
+              <div class="nx-detail-identifiers">
+                <span class="nx-detail-code nx-mono">{{ item.sku }}</span>
+                <app-nx-badge [status]="item.is_active ? 'active' : 'inactive'">
+                  {{ item.is_active ? 'Active' : 'Inactive' }}
+                </app-nx-badge>
+              </div>
+              <div class="nx-detail-actions">
+                <ng-container *appNxHasPermission="'manage_stock'">
+                  <app-nx-button variant="ghost" size="sm" (nxClick)="openStockForm(item, 'STOCK_IN')" aria-label="Record stock in">
+                    Stock In
+                  </app-nx-button>
+                  <app-nx-button variant="ghost" size="sm" class="nx-stock-out-action" (nxClick)="openStockForm(item, 'STOCK_OUT')" aria-label="Record stock out">
+                    Stock Out
+                  </app-nx-button>
+                </ng-container>
+                <ng-container *appNxHasPermission="'manage_inventory'">
+                  <app-nx-button variant="ghost" size="sm" (nxClick)="openEditItemForm(item)" aria-label="Edit item">
+                    Edit
+                  </app-nx-button>
+                  <app-nx-button variant="ghost" size="sm" class="nx-danger-action" (nxClick)="requestDeleteItem(item)" aria-label="Delete item">
+                    Delete
+                  </app-nx-button>
+                </ng-container>
+              </div>
+            </div>
+
+            <h2 class="nx-detail-name">{{ item.name }}</h2>
+
+            <app-nx-panel title="Stock">
+              <div class="nx-detail-fields">
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Total in stock</span>
+                  <span class="nx-field-value nx-mono nx-stock-total">{{ item.stock.total.toLocaleString() }} <span class="nx-row-unit">{{ item.unit }}</span></span>
+                </div>
+              </div>
+              @if ((item.stock.warehouses?.length ?? 0) > 0) {
+                <div class="nx-table-wrap">
+                  <table class="nx-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Warehouse</th>
+                        <th scope="col" class="nx-number">Quantity</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (row of item.stock.warehouses ?? []; track row.warehouse.id) {
+                        <tr>
+                          <td>
+                            <span class="nx-wh-code nx-mono">{{ row.warehouse.code }}</span>
+                            <span class="nx-wh-name">{{ row.warehouse.name }}</span>
+                          </td>
+                          <td class="nx-number nx-mono">{{ row.quantity.toLocaleString() }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              }
+            </app-nx-panel>
+
+            <app-nx-panel title="Properties">
+              <div class="nx-detail-fields">
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Category</span>
+                  <span class="nx-field-value">{{ item.category?.name ?? '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Unit</span>
+                  <span class="nx-field-value nx-mono">{{ item.unit }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Minimum stock</span>
+                  <span class="nx-field-value nx-mono">{{ item.minimum_stock ?? '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Maximum stock</span>
+                  <span class="nx-field-value nx-mono">{{ item.maximum_stock ?? '—' }}</span>
+                </div>
+                @if (item.description) {
+                  <div class="nx-detail-field">
+                    <span class="nx-field-label">Description</span>
+                    <span class="nx-field-value">{{ item.description }}</span>
+                  </div>
+                }
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Created</span>
+                  <span class="nx-field-value nx-mono nx-timestamp">{{ item.created_at ? (item.created_at | date:'medium') : '—' }}</span>
+                </div>
+                <div class="nx-detail-field">
+                  <span class="nx-field-label">Updated</span>
+                  <span class="nx-field-value nx-mono nx-timestamp">{{ item.updated_at ? (item.updated_at | date:'medium') : '—' }}</span>
+                </div>
+              </div>
+            </app-nx-panel>
+
+          </div>
+        }
+      </section>
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       CATEGORIES
+       ══════════════════════════════════════════════════════════════════ -->
+  @if (activeView() === 'categories') {
+    <div class="nx-tab-view">
+      <div class="nx-tab-toolbar">
+        <span class="nx-tab-title">Item Categories</span>
+        <ng-container *appNxHasPermission="'manage_inventory'">
+          <app-nx-button variant="primary" size="sm" (nxClick)="openCreateCategoryForm()">
+            <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+            New Category
+          </app-nx-button>
+        </ng-container>
+      </div>
+
+      @if (categoriesLoading() && categories().length === 0) {
+        <app-nx-loading-state mode="skeleton">
+          <div class="nx-skeleton-rows">
+            @for (i of skeletonRows; track i) {
+              <div class="nx-skeleton-row">
+                <span class="nx-skeleton nx-skeleton-code"></span>
+                <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                <span class="nx-skeleton nx-skeleton-badge"></span>
+              </div>
+            }
+          </div>
+        </app-nx-loading-state>
+      }
+
+      @if (!categoriesLoading() && categories().length === 0 && categoriesError(); as error) {
+        <app-nx-error-state
+          title="UNABLE TO LOAD CATEGORIES"
+          [message]="error.message"
+          [showRetry]="true"
+          (nxRetry)="loadCategories(true)"
+        ></app-nx-error-state>
+      }
+
+      @if (!categoriesLoading() && categories().length === 0 && categoriesError() === null) {
+        <app-nx-empty-state
+          icon="pricetags-outline"
+          title="NO CATEGORIES"
+          description="Item categories group inventory items."
+          [showActions]="hasManageInventory()"
+        >
+          <ng-container *appNxHasPermission="'manage_inventory'">
+            <app-nx-button variant="primary" nx-empty-action (nxClick)="openCreateCategoryForm()">
+              New Category
+            </app-nx-button>
+          </ng-container>
+        </app-nx-empty-state>
+      }
+
+      @if (categories().length > 0) {
+        <div class="nx-table-wrap nx-fill">
+          <table class="nx-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Code</th>
+                <th scope="col">Items</th>
+                <th scope="col">Description</th>
+                <th scope="col" class="nx-actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (cat of categories(); track trackById($index, cat)) {
+                <tr>
+                  <td class="nx-cell-strong">{{ cat.name }}</td>
+                  <td class="nx-mono">{{ cat.code }}</td>
+                  <td class="nx-number nx-mono">{{ cat.items_count?.toLocaleString() ?? '—' }}</td>
+                  <td class="nx-cell-muted">{{ cat.description ?? '—' }}</td>
+                  <td class="nx-actions-col">
+                    <ng-container *appNxHasPermission="'manage_inventory'">
+                      <app-nx-button variant="ghost" size="sm" (nxClick)="openEditCategoryForm(cat)" aria-label="Edit category">Edit</app-nx-button>
+                      <app-nx-button variant="ghost" size="sm" class="nx-danger-action" (nxClick)="requestDeleteCategory(cat)" aria-label="Delete category">Delete</app-nx-button>
+                    </ng-container>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (categoryLastPage() > 1) {
+          <div class="nx-pagination">
+            <span class="nx-pagination-info">Showing {{ categories().length }} of {{ categoriesTotal() }}</span>
+            <div class="nx-pagination-controls">
+              <app-nx-button variant="ghost" size="sm" [disabled]="categoryPage() <= 1" (nxClick)="goToCategoryPage(categoryPage() - 1)" aria-label="Previous page">Prev</app-nx-button>
+              <span class="nx-pagination-current">Page {{ categoryPage() }} of {{ categoryLastPage() }}</span>
+              <app-nx-button variant="ghost" size="sm" [disabled]="categoryPage() >= categoryLastPage()" (nxClick)="goToCategoryPage(categoryPage() + 1)" aria-label="Next page">Next</app-nx-button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       WAREHOUSES
+       ══════════════════════════════════════════════════════════════════ -->
+  @if (activeView() === 'warehouses') {
+    <div class="nx-tab-view">
+      <div class="nx-tab-toolbar">
+        <span class="nx-tab-title">Warehouses</span>
+        <ng-container *appNxHasPermission="'manage_inventory'">
+          <app-nx-button variant="primary" size="sm" (nxClick)="openWarehouseFormForCreate()">
+            <ion-icon name="add-outline" aria-hidden="true"></ion-icon>
+            New Warehouse
+          </app-nx-button>
+        </ng-container>
+      </div>
+
+      @if (warehousesLoading() && warehouses().length === 0) {
+        <app-nx-loading-state mode="skeleton">
+          <div class="nx-skeleton-rows">
+            @for (i of skeletonRows; track i) {
+              <div class="nx-skeleton-row">
+                <span class="nx-skeleton nx-skeleton-code"></span>
+                <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                <span class="nx-skeleton nx-skeleton-badge"></span>
+              </div>
+            }
+          </div>
+        </app-nx-loading-state>
+      }
+
+      @if (!warehousesLoading() && warehouses().length === 0 && warehousesError(); as error) {
+        <app-nx-error-state
+          title="UNABLE TO LOAD WAREHOUSES"
+          [message]="error.message"
+          [showRetry]="true"
+          (nxRetry)="loadWarehouses(true)"
+        ></app-nx-error-state>
+      }
+
+      @if (!warehousesLoading() && warehouses().length === 0 && warehousesError() === null) {
+        <app-nx-empty-state
+          icon="business-outline"
+          title="NO WAREHOUSES"
+          description="Warehouses hold stock for inventory items."
+          [showActions]="hasManageInventory()"
+        >
+          <ng-container *appNxHasPermission="'manage_inventory'">
+            <app-nx-button variant="primary" nx-empty-action (nxClick)="openWarehouseFormForCreate()">
+              New Warehouse
+            </app-nx-button>
+          </ng-container>
+        </app-nx-empty-state>
+      }
+
+      @if (warehouses().length > 0) {
+        <div class="nx-table-wrap nx-fill">
+          <table class="nx-table">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Code</th>
+                <th scope="col">Location</th>
+                <th scope="col">Status</th>
+                <th scope="col">Description</th>
+                <th scope="col" class="nx-actions-col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (wh of warehouses(); track trackById($index, wh)) {
+                <tr>
+                  <td class="nx-cell-strong">{{ wh.name }}</td>
+                  <td class="nx-mono">{{ wh.code }}</td>
+                  <td class="nx-cell-muted">{{ wh.location?.name ?? '—' }}</td>
+                  <td>
+                    <app-nx-badge [status]="wh.is_active ? 'active' : 'inactive'">
+                      {{ wh.is_active ? 'Active' : 'Inactive' }}
+                    </app-nx-badge>
+                  </td>
+                  <td class="nx-cell-muted">{{ wh.description ?? '—' }}</td>
+                  <td class="nx-actions-col">
+                    <ng-container *appNxHasPermission="'manage_inventory'">
+                      <app-nx-button variant="ghost" size="sm" (nxClick)="openEditWarehouseForm(wh)" aria-label="Edit warehouse">Edit</app-nx-button>
+                      <app-nx-button variant="ghost" size="sm" class="nx-danger-action" (nxClick)="requestDeleteWarehouse(wh)" aria-label="Delete warehouse">Delete</app-nx-button>
+                    </ng-container>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (warehouseLastPage() > 1) {
+          <div class="nx-pagination">
+            <span class="nx-pagination-info">Showing {{ warehouses().length }} of {{ warehousesTotal() }}</span>
+            <div class="nx-pagination-controls">
+              <app-nx-button variant="ghost" size="sm" [disabled]="warehousePage() <= 1" (nxClick)="goToWarehousePage(warehousePage() - 1)" aria-label="Previous page">Prev</app-nx-button>
+              <span class="nx-pagination-current">Page {{ warehousePage() }} of {{ warehouseLastPage() }}</span>
+              <app-nx-button variant="ghost" size="sm" [disabled]="warehousePage() >= warehouseLastPage()" (nxClick)="goToWarehousePage(warehousePage() + 1)" aria-label="Next page">Next</app-nx-button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ══════════════════════════════════════════════════════════════════
+       MOVEMENTS — immutable journal
+       ══════════════════════════════════════════════════════════════════ -->
+  @if (activeView() === 'movements') {
+    <div class="nx-tab-view">
+      <div class="nx-tab-toolbar">
+        <span class="nx-tab-title">Stock Movements</span>
+        @if (movementActiveFilters() > 0) {
+          <app-nx-button variant="ghost" size="sm" (nxClick)="clearMovementFilters()">
+            Clear filters ({{ movementActiveFilters() }})
+          </app-nx-button>
+        }
+      </div>
+      <p class="nx-journal-note">Stock movements are recorded as an immutable operational journal. Corrections are made with compensating movements.</p>
+
+      <div class="nx-movement-filters">
+        <div class="nx-filter-field">
+          <label class="nx-filter-label" for="nx-m-filter-type">Type</label>
+          <select
+            id="nx-m-filter-type"
+            class="nx-select"
+            [value]="movementTypeFilter() || ''"
+            (change)="setMovementTypeFilter($any($event.target).value)"
+          >
+            <option value="">All types</option>
+            <option value="STOCK_IN">Stock In</option>
+            <option value="STOCK_OUT">Stock Out</option>
+          </select>
+        </div>
+        <div class="nx-filter-field">
+          <label class="nx-filter-label" for="nx-m-filter-item">Item</label>
+          <select
+            id="nx-m-filter-item"
+            class="nx-select"
+            [value]="movementItemFilter() || ''"
+            (change)="setMovementItemFilter($any($event.target).value)"
+          >
+            <option value="">All items</option>
+            @for (item of movementItems(); track item.id) {
+              <option [value]="item.id">{{ item.sku }} · {{ item.name }}</option>
+            }
+          </select>
+        </div>
+        <div class="nx-filter-field">
+          <label class="nx-filter-label" for="nx-m-filter-warehouse">Warehouse</label>
+          <select
+            id="nx-m-filter-warehouse"
+            class="nx-select"
+            [value]="movementWarehouseFilter() || ''"
+            (change)="setMovementWarehouseFilter($any($event.target).value)"
+          >
+            <option value="">All warehouses</option>
+            @for (wh of warehouses(); track wh.id) {
+              <option [value]="wh.id">{{ wh.name }}</option>
+            }
+          </select>
+        </div>
+      </div>
+
+      @if (movementsLoading() && movements().length === 0) {
+        <app-nx-loading-state mode="skeleton">
+          <div class="nx-skeleton-rows">
+            @for (i of skeletonRows; track i) {
+              <div class="nx-skeleton-row">
+                <span class="nx-skeleton nx-skeleton-code"></span>
+                <span class="nx-skeleton nx-skeleton-name nx-skeleton-title"></span>
+                <span class="nx-skeleton nx-skeleton-badge"></span>
+              </div>
+            }
+          </div>
+        </app-nx-loading-state>
+      }
+
+      @if (!movementsLoading() && movements().length === 0 && movementsError(); as error) {
+        <app-nx-error-state
+          title="UNABLE TO LOAD MOVEMENTS"
+          [message]="error.message"
+          [showRetry]="true"
+          (nxRetry)="loadMovements(true)"
+        ></app-nx-error-state>
+      }
+
+      @if (!movementsLoading() && movements().length === 0 && movementsError() === null) {
+        <app-nx-empty-state
+          icon="swap-vertical-outline"
+          title="NO STOCK MOVEMENTS"
+          description="Inventory activity will appear here."
+        ></app-nx-empty-state>
+      }
+
+      @if (movements().length > 0) {
+        <div class="nx-table-wrap nx-fill">
+          <table class="nx-table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Type</th>
+                <th scope="col">Item</th>
+                <th scope="col">Warehouse</th>
+                <th scope="col" class="nx-number">Quantity</th>
+                <th scope="col">By</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (movement of movements(); track movement.id) {
+                <tr>
+                  <td class="nx-mono nx-timestamp">{{ movement.created_at ? (movement.created_at | date:'MMM d, y HH:mm') : '—' }}</td>
+                  <td>
+                    <app-nx-badge [status]="movementBadge(movement.type)">
+                      {{ MOVEMENT_LABEL[movement.type] }}
+                    </app-nx-badge>
+                  </td>
+                  <td>
+                    <span class="nx-cell-line">
+                      <span class="nx-mono">{{ movement.item?.sku }}</span>
+                      <span class="nx-cell-muted">{{ movement.item?.name }}</span>
+                    </span>
+                  </td>
+                  <td class="nx-cell-muted">{{ movement.warehouse?.name ?? '—' }}</td>
+                  <td class="nx-number">
+                    <span class="nx-mono" [class]="movementTypeClass(movement.type)">{{ quantityLabel(movement) }}</span>
+                  </td>
+                  <td class="nx-cell-muted">{{ movement.performer?.name ?? '—' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        @if (movementLastPage() > 1) {
+          <div class="nx-pagination">
+            <span class="nx-pagination-info">Showing {{ movements().length }} of {{ movementsTotal() }}</span>
+            <div class="nx-pagination-controls">
+              <app-nx-button variant="ghost" size="sm" [disabled]="movementPage() <= 1" (nxClick)="goToMovementPage(movementPage() - 1)" aria-label="Previous page">Prev</app-nx-button>
+              <span class="nx-pagination-current">Page {{ movementPage() }} of {{ movementLastPage() }}</span>
+              <app-nx-button variant="ghost" size="sm" [disabled]="movementPage() >= movementLastPage()" (nxClick)="goToMovementPage(movementPage() + 1)" aria-label="Next page">Next</app-nx-button>
+            </div>
+          </div>
+        }
+      }
+    </div>
+  }
+
+  <!-- ═══ Item create / edit (overlay) ════════════════════════════════ -->
+  @if (isItemFormOpen()) {
+    <div class="nx-overlay" (click)="closeItemForm()" (keydown.escape)="closeItemForm()">
+      <div
+        class="nx-dialog"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="editingItem() ? 'Edit item' : 'Create item'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ editingItem() ? 'Edit Item' : 'Create Item' }}</h2>
+          <button class="nx-dialog-close" (click)="closeItemForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" [formGroup]="itemForm" (ngSubmit)="submitItemForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-i-sku">SKU *</label>
+            <input
+              id="nx-i-sku"
+              class="nx-form-input nx-mono"
+              type="text"
+              placeholder="e.g. ITEM-001"
+              formControlName="sku"
+              (input)="clearItemError('sku')"
+              [class.nx-input-error]="itemErrors()['sku']"
+              autofocus
+            />
+            @if (itemErrors()['sku']) {
+              <p class="nx-form-error" role="alert">{{ itemErrors()['sku'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-i-name">Name *</label>
+            <input
+              id="nx-i-name"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. Ballpoint Pen"
+              formControlName="name"
+              (input)="clearItemError('name')"
+              [class.nx-input-error]="itemErrors()['name']"
+            />
+            @if (itemErrors()['name']) {
+              <p class="nx-form-error" role="alert">{{ itemErrors()['name'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-i-category">Category *</label>
+            <select
+              id="nx-i-category"
+              class="nx-form-input"
+              formControlName="item_category_id"
+              (change)="clearItemError('item_category_id')"
+              [class.nx-input-error]="itemErrors()['item_category_id']"
+            >
+              <option [ngValue]="null">—</option>
+              @for (cat of categories(); track cat.id) {
+                <option [ngValue]="cat.id">{{ cat.name }}</option>
+              }
+            </select>
+            @if (itemErrors()['item_category_id']) {
+              <p class="nx-form-error" role="alert">{{ itemErrors()['item_category_id'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-i-unit">Unit *</label>
+            <input
+              id="nx-i-unit"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. unit, box, set"
+              formControlName="unit"
+              (input)="clearItemError('unit')"
+              [class.nx-input-error]="itemErrors()['unit']"
+            />
+            @if (itemErrors()['unit']) {
+              <p class="nx-form-error" role="alert">{{ itemErrors()['unit'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-row">
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-i-min">Minimum stock</label>
+              <input
+                id="nx-i-min"
+                class="nx-form-input nx-mono"
+                type="number"
+                min="0"
+                step="1"
+                formControlName="minimum_stock"
+              />
+            </div>
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-i-max">Maximum stock</label>
+              <input
+                id="nx-i-max"
+                class="nx-form-input nx-mono"
+                type="number"
+                min="0"
+                step="1"
+                formControlName="maximum_stock"
+              />
+            </div>
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-i-description">Description</label>
+            <textarea
+              id="nx-i-description"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional description..."
+              formControlName="description"
+            ></textarea>
+          </div>
+
+          <label class="nx-checkbox">
+            <input type="checkbox" formControlName="is_active" />
+            <span>Active item</span>
+          </label>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeItemForm()">Cancel</app-nx-button>
+            <app-nx-button
+              variant="primary"
+              type="submit"
+              [disabled]="isItemSubmitting()"
+            >
+              @if (isItemSubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ editingItem() ? 'Update Item' : 'Create Item' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Stock in / stock out (overlay) ══════════════════════════════ -->
+  @if (isStockFormOpen()) {
+    <div class="nx-overlay" (click)="closeStockForm()" (keydown.escape)="closeStockForm()">
+      <div
+        class="nx-dialog nx-dialog-stock"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="stockType() === 'STOCK_IN' ? 'Record stock in' : 'Record stock out'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ stockType() === 'STOCK_IN' ? 'Stock In' : 'Stock Out' }}</h2>
+          <button class="nx-dialog-close" (click)="closeStockForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        @if (stockTarget(); as target) {
+          <p class="nx-stock-target">
+            <span class="nx-stock-target-code nx-mono">{{ target.sku }}</span>
+            {{ target.name }}
+          </p>
+        }
+
+        <form class="nx-dialog-body" [formGroup]="stockForm" (ngSubmit)="submitStockForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-s-warehouse">Warehouse *</label>
+            <select
+              id="nx-s-warehouse"
+              class="nx-form-input"
+              formControlName="warehouse_id"
+              (change)="clearStockError('warehouse_id')"
+              [class.nx-input-error]="stockErrors()['warehouse_id']"
+            >
+              <option [ngValue]="null">—</option>
+              @for (wh of warehouses(); track wh.id) {
+                <option [ngValue]="wh.id">{{ wh.name }}</option>
+              }
+            </select>
+            @if (stockErrors()['warehouse_id']) {
+              <p class="nx-form-error" role="alert">{{ stockErrors()['warehouse_id'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-s-quantity">Quantity *</label>
+            <input
+              id="nx-s-quantity"
+              class="nx-form-input nx-mono"
+              type="number"
+              min="1"
+              step="1"
+              formControlName="quantity"
+              (input)="clearStockError('quantity')"
+              [class.nx-input-error]="stockErrors()['quantity']"
+            />
+            @if (stockErrors()['quantity']) {
+              <p class="nx-form-error" role="alert">{{ stockErrors()['quantity'] }}</p>
+            }
+          </div>
+
+          @if (stockType() === 'STOCK_OUT' && stockForm.value.warehouse_id) {
+            @if (availableFor('STOCK_OUT', stockForm.value.warehouse_id); as available) {
+              <p class="nx-stock-hint">Available in this warehouse: <span class="nx-mono">{{ available.toLocaleString() }}</span></p>
+            }
+          }
+
+          @if (stockInsufficient()) {
+            <div class="nx-stock-error" role="alert">
+              <p class="nx-stock-error-title">Unable to complete stock out</p>
+              <p class="nx-stock-error-message">{{ stockServerMessage() }}</p>
+            </div>
+          }
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-s-notes">Notes</label>
+            <textarea
+              id="nx-s-notes"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional movement note..."
+              formControlName="notes"
+            ></textarea>
+          </div>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeStockForm()">Cancel</app-nx-button>
+            <app-nx-button
+              variant="primary"
+              type="submit"
+              [disabled]="isStockSubmitting()"
+            >
+              @if (isStockSubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ stockType() === 'STOCK_IN' ? 'Record Stock In' : 'Record Stock Out' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Category create / edit (overlay) ═════════════════════════════ -->
+  @if (isCategoryFormOpen()) {
+    <div class="nx-overlay" (click)="closeCategoryForm()" (keydown.escape)="closeCategoryForm()">
+      <div
+        class="nx-dialog nx-dialog-small"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="editingCategory() ? 'Edit category' : 'Create category'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ editingCategory() ? 'Edit Category' : 'Create Category' }}</h2>
+          <button class="nx-dialog-close" (click)="closeCategoryForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" [formGroup]="categoryForm" (ngSubmit)="submitCategoryForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-c-name">Name *</label>
+            <input
+              id="nx-c-name"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. Office Supplies"
+              formControlName="name"
+              (input)="clearCategoryError('name')"
+              [class.nx-input-error]="categoryErrors()['name']"
+              autofocus
+            />
+            @if (categoryErrors()['name']) {
+              <p class="nx-form-error" role="alert">{{ categoryErrors()['name'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-c-code">Code *</label>
+            <input
+              id="nx-c-code"
+              class="nx-form-input nx-mono"
+              type="text"
+              placeholder="e.g. OFC"
+              formControlName="code"
+              (input)="clearCategoryError('code')"
+              [class.nx-input-error]="categoryErrors()['code']"
+            />
+            @if (categoryErrors()['code']) {
+              <p class="nx-form-error" role="alert">{{ categoryErrors()['code'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-c-description">Description</label>
+            <textarea
+              id="nx-c-description"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional description..."
+              formControlName="description"
+            ></textarea>
+          </div>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeCategoryForm()">Cancel</app-nx-button>
+            <app-nx-button variant="primary" type="submit" [disabled]="isCategorySubmitting()">
+              @if (isCategorySubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ editingCategory() ? 'Update Category' : 'Create Category' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Warehouse create / edit (overlay) ════════════════════════════ -->
+  @if (isWarehouseFormOpen()) {
+    <div class="nx-overlay" (click)="closeWarehouseForm()" (keydown.escape)="closeWarehouseForm()">
+      <div
+        class="nx-dialog nx-dialog-small"
+        role="dialog"
+        aria-modal="true"
+        [attr.aria-label]="editingWarehouse() ? 'Edit warehouse' : 'Create warehouse'"
+        (click)="$event.stopPropagation()"
+      >
+        <div class="nx-dialog-header">
+          <h2 class="nx-dialog-title">{{ editingWarehouse() ? 'Edit Warehouse' : 'Create Warehouse' }}</h2>
+          <button class="nx-dialog-close" (click)="closeWarehouseForm()" aria-label="Close form">
+            <ion-icon name="close-outline" aria-hidden="true"></ion-icon>
+          </button>
+        </div>
+
+        <form class="nx-dialog-body" [formGroup]="warehouseForm" (ngSubmit)="submitWarehouseForm()">
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-w-name">Name *</label>
+            <input
+              id="nx-w-name"
+              class="nx-form-input"
+              type="text"
+              placeholder="e.g. Main Warehouse"
+              formControlName="name"
+              (input)="clearWarehouseError('name')"
+              [class.nx-input-error]="warehouseErrors()['name']"
+              autofocus
+            />
+            @if (warehouseErrors()['name']) {
+              <p class="nx-form-error" role="alert">{{ warehouseErrors()['name'] }}</p>
+            }
+          </div>
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-w-code">Code *</label>
+            <input
+              id="nx-w-code"
+              class="nx-form-input nx-mono"
+              type="text"
+              placeholder="e.g. MAIN"
+              formControlName="code"
+              (input)="clearWarehouseError('code')"
+              [class.nx-input-error]="warehouseErrors()['code']"
+            />
+            @if (warehouseErrors()['code']) {
+              <p class="nx-form-error" role="alert">{{ warehouseErrors()['code'] }}</p>
+            }
+          </div>
+
+          @if (locations().length > 0) {
+            <div class="nx-form-field">
+              <label class="nx-form-label" for="nx-w-location">Location</label>
+              <select
+                id="nx-w-location"
+                class="nx-form-input"
+                formControlName="location_id"
+              >
+                <option [ngValue]="''">—</option>
+                @for (loc of locations(); track loc.id) {
+                  <option [ngValue]="loc.id">{{ loc.name }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="nx-form-field">
+            <label class="nx-form-label" for="nx-w-description">Description</label>
+            <textarea
+              id="nx-w-description"
+              class="nx-form-input"
+              rows="2"
+              placeholder="Optional description..."
+              formControlName="description"
+            ></textarea>
+          </div>
+
+          <label class="nx-checkbox">
+            <input type="checkbox" formControlName="is_active" />
+            <span>Active warehouse</span>
+          </label>
+
+          <div class="nx-dialog-footer">
+            <app-nx-button variant="ghost" (nxClick)="closeWarehouseForm()">Cancel</app-nx-button>
+            <app-nx-button variant="primary" type="submit" [disabled]="isWarehouseSubmitting()">
+              @if (isWarehouseSubmitting()) {
+                <ion-icon name="sync" aria-hidden="true"></ion-icon>
+              }
+              {{ editingWarehouse() ? 'Update Warehouse' : 'Create Warehouse' }}
+            </app-nx-button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ Confirm dialog (delete) ══════════════════════════════════════ -->
+  <app-nx-confirm-dialog
+    [open]="confirmRequest() !== null"
+    [title]="confirmRequest()?.title ?? ''"
+    [message]="confirmRequest()?.message ?? ''"
+    [confirmLabel]="confirmRequest()?.confirmLabel ?? 'Confirm'"
+    confirmVariant="danger"
+    (nxCancel)="closeConfirm()"
+    (confirm)="executeConfirm()"
+  ></app-nx-confirm-dialog>
+
+</div>

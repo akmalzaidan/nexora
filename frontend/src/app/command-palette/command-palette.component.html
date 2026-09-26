@@ -1,0 +1,80 @@
+<div class="nx-command-palette" [class.open]="isOpen()">
+  <!-- Trigger indicator -->
+  <div class="nx-cp-trigger">
+    <span class="nx-kbd">Ctrl</span>
+    <span class="nx-kbd">K</span>
+    <span class="nx-cp-label">Search NEXORA</span>
+  </div>
+
+  <!-- Search field -->
+  <div class="nx-cp-search">
+    <ion-icon class="nx-search-icon" name="search"></ion-icon>
+    <input
+      #searchInput
+      type="text"
+      class="nx-cp-search-input"
+      placeholder="Type a command or search..."
+      [value]="query()"
+      (input)="onQueryInput($any($event.target).value)"
+    />
+    @if (query()) {
+      <button class="nx-cp-search-clear" (click)="onQueryInput('')">
+        <ion-icon name="close-circle"></ion-icon>
+      </button>
+    }
+  </div>
+
+  <!-- Results -->
+  @if (filteredCommands().length > 0) {
+    <div class="nx-cp-results">
+      @for (group of groups; track group.id) {
+        <div class="nx-cp-group">
+          @if (hasCommandsInGroup(group.id)) {
+            <div class="nx-cp-group-header">
+              <ion-icon [name]="getIconForGroup(group.id)"></ion-icon>
+              <span>{{ group.id }}</span>
+            </div>
+          }
+          @for (command of filteredCommands(); track command.id) {
+            <button
+              class="nx-cp-item"
+              [class.active]="activeIndex() === filteredCommands().indexOf(command)"
+              (click)="onCommandClick(command)"
+              (mouseenter)="onItemHover(filteredCommands().indexOf(command))"
+            >
+              <div class="nx-cp-item-label">{{ command.label }}</div>
+              @if (command.hint) {
+                <div class="nx-cp-item-hint">
+                  <span class="nx-kbd">{{ command.hint }}</span>
+                </div>
+              }
+            </button>
+          }
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Empty state -->
+  @if (filteredCommands().length === 0) {
+    <div class="nx-cp-empty">
+      <div class="nx-cp-empty-icon">
+        <ion-icon name="search-outline"></ion-icon>
+      </div>
+      <p>No commands found for "{{ query() }}"</p>
+    </div>
+  }
+
+  <!-- Footer -->
+  <div class="nx-cp-footer">
+    <span>
+      <span class="nx-kbd">↑</span><span class="nx-kbd">↓</span> to navigate
+    </span>
+    <span>
+      <span class="nx-kbd">Enter</span> to select
+    </span>
+    <span>
+      <span class="nx-kbd">Esc</span> to close
+    </span>
+  </div>
+</div>

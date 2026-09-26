@@ -1,0 +1,242 @@
+/* ═══════════════════════════════════════════════════════════════════
+ * NEXORA - Global Styles
+ * ═══════════════════════════════════════════════════════════════════ */
+
+/* Ion CSS core */
+@import '@ionic/angular/css/core.css';
+@import '@ionic/angular/css/normalize.css';
+@import '@ionic/angular/css/structure.css';
+@import '@ionic/angular/css/typography.css';
+@import '@ionic/angular/css/display.css';
+@import '@ionic/angular/css/padding.css';
+@import '@ionic/angular/css/float-elements.css';
+@import '@ionic/angular/css/text-alignment.css';
+@import '@ionic/angular/css/text-transformation.css';
+@import '@ionic/angular/css/flex-utils.css';
+
+/* NX Design System - imported after Ionic to override */
+@import './theme/variables.scss';
+@import './theme/typography.scss';
+@import './theme/status.scss';
+@import './theme/components.scss';
+@import './theme/utilities.scss';
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Global Resets & Base
+ * ═══════════════════════════════════════════════════════════════════ */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--nx-bg);
+  color: var(--nx-text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--nx-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--nx-border-strong);
+  border-radius: 4px;
+
+  &:hover {
+    background: var(--nx-text-muted);
+  }
+}
+
+// Selection
+::selection {
+  background: var(--nx-accent);
+  color: var(--nx-bg);
+}
+
+// Focus
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--nx-accent);
+}
+
+// Smooth scroll
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+// Links
+a {
+  color: var(--nx-accent);
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Remove default button styles
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+// Input reset
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  outline: none;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Ionic Overrides
+// ═══════════════════════════════════════════════════════════════════
+
+ion-content {
+  --background: var(--nx-bg);
+}
+
+ion-header {
+  box-shadow: none;
+}
+
+ion-toolbar {
+  --background: var(--nx-surface);
+  --color: var(--nx-text);
+  --title-color: var(--nx-text);
+  --border-color: var(--nx-border-subtle);
+  height: 48px;
+}
+
+ion-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+ion-tab-bar {
+  --background: var(--nx-surface);
+  --color: var(--nx-text-muted);
+  --color-selected: var(--nx-accent);
+  height: 56px;
+}
+
+ion-tab-button {
+  --color: var(--nx-text-muted);
+  --color-selected: var(--nx-accent);
+}
+
+ion-item {
+  --background: var(--nx-surface);
+  --color: var(--nx-text);
+  --border-color: var(--nx-border-subtle);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --inner-padding-end: 0;
+}
+
+ion-card {
+  --background: var(--nx-surface);
+  border: 1px solid var(--nx-border);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+ion-button {
+  --background: var(--nx-accent);
+  --background-hover: color-mix(in srgb, var(--nx-accent) 85%, white);
+  --background-activated: color-mix(in srgb, var(--nx-accent) 70%, white);
+  --color: color-mix(in srgb, var(--nx-bg) 85%, black);
+  --border-radius: 6px;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 14px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+ion-input, ion-textarea {
+  --background: var(--nx-surface);
+  --color: var(--nx-text);
+  --placeholder-color: var(--nx-text-muted);
+  --border-color: var(--nx-border);
+  --border-radius: 6px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+}
+
+ion-modal {
+  --background: var(--nx-surface-elevated);
+  --border-radius: 12px;
+}
+
+ion-loading {
+  --background: color-mix(in srgb, var(--nx-bg) 60%, transparent);
+  --spinner-color: var(--nx-accent);
+}
+
+ion-toast {
+  --background: var(--nx-surface-elevated);
+  --color: var(--nx-text);
+  --border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+}
+
+ion-footer {
+  --background: var(--nx-surface);
+}
+
+ion-tabs {
+  --background: var(--nx-surface);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+ * Reduced motion
+ * ═══════════════════════════════════════════════════════════════════ */
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

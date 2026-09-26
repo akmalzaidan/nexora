@@ -1,0 +1,91 @@
+// ═══════════════════════════════════════════════════════════════════
+// Mobile Navigation Styles
+// ═══════════════════════════════════════════════════════════════════
+
+@use 'design-tokens' as *;
+
+
+.nx-mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 56px;
+  background: var(--nx-surface);
+  border-top: 1px solid var(--nx-border-subtle);
+  z-index: $nx-z-sticky;
+  display: flex;
+  align-items: center;
+}
+
+.nx-mobile-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  width: 100%;
+}
+
+.nx-mobile-nav-list li {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nx-mobile-nav-list a {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: $nx-space-1;
+  padding: $nx-space-1;
+  text-decoration: none;
+  color: var(--nx-text-muted);
+  font-size: $nx-font-size-xs;
+  font-weight: $nx-font-weight-medium;
+  transition: color $nx-transition-fast;
+  min-width: 48px;
+  min-height: 48px;
+
+  ion-icon {
+    font-size: 20px;
+  }
+
+  &:hover {
+    color: var(--nx-text-secondary);
+  }
+
+  &.active {
+    color: var(--nx-accent);
+
+    ion-icon {
+      color: var(--nx-accent);
+    }
+  }
+}
+
+// Central "+" button
+.nx-mobile-nav-plus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: var(--nx-accent);
+  border-radius: $nx-radius-full;
+  cursor: pointer;
+  color: var(--nx-bg);
+  font-size: 22px;
+  transition: transform $nx-transition-fast, filter $nx-transition-fast;
+
+  &:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}

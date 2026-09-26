@@ -1,0 +1,20 @@
+<nav class="nx-mobile-nav">
+  <ul class="nx-mobile-nav-list">
+    @for (item of visibleItems(); track item.label + item.route) {
+      @if (item.action) {
+        <li>
+          <a class="nx-mobile-nav-plus">
+            <ion-icon [name]="item.icon"></ion-icon>
+          </a>
+        </li>
+      } @else {
+        <li>
+          <a [routerLink]="item.route" routerLinkActive="active">
+            <ion-icon [name]="item.icon"></ion-icon>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    }
+  </ul>
+</nav>
