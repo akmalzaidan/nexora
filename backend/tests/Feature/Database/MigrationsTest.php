@@ -8,6 +8,16 @@ use Tests\TestCase;
 
 class MigrationsTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        // migrate:fresh issues DDL outside any RefreshDatabase transaction, and
+        // PostgreSQL commits DDL implicitly. Restoring an unseeded schema keeps
+        // the seeded rows from leaking into every test that runs after this one.
+        Artisan::call('migrate:fresh');
+
+        parent::tearDown();
+    }
+
     public function test_migrate_fresh_with_seed_runs_cleanly(): void
     {
         $exitCode = Artisan::call('migrate:fresh', ['--seed' => true]);

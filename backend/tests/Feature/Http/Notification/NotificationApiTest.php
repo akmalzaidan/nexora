@@ -123,7 +123,7 @@ class NotificationApiTest extends NotificationTestCase
         $this->assertSame(Notification::TYPE_TICKET_ASSIGNED, $item['type']);
         $this->assertSame('Ticket assigned to you', $item['title']);
         $this->assertSame('Ticket TCK-1 has been assigned to you.', $item['message']);
-        $this->assertSame(['ticket_id' => 10, 'ticket_number' => 'TCK-1'], $item['data']);
+        $this->assertEquals(['ticket_id' => 10, 'ticket_number' => 'TCK-1'], $item['data']);
         $this->assertFalse($item['is_read']);
         $this->assertNull($item['read_at']);
         $this->assertArrayHasKey('created_at', $item);

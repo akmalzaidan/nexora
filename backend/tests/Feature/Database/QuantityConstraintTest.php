@@ -3,6 +3,8 @@
 namespace Tests\Feature\Database;
 
 use App\Models\Item;
+use App\Models\MaintenancePart;
+use App\Models\MaintenanceRecord;
 use App\Models\StockMovement;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -45,6 +47,23 @@ class QuantityConstraintTest extends TestCase
             'type' => 'IN',
             'quantity' => 0,
             'performed_by' => $user->id,
+        ]);
+    }
+
+    public function test_maintenance_part_quantity_must_be_positive(): void
+    {
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('CHECK constraints are only enforced on PostgreSQL.');
+        }
+
+        $record = MaintenanceRecord::factory()->create();
+        $item = Item::factory()->create();
+
+        $this->expectException(QueryException::class);
+        MaintenancePart::create([
+            'maintenance_record_id' => $record->id,
+            'item_id' => $item->id,
+            'quantity' => 0,
         ]);
     }
 }

@@ -62,7 +62,7 @@ implemented in later phases.
 | Backend      | Laravel (PHP), Laravel Sanctum, REST API |
 | Database     | PostgreSQL                          |
 | Infra        | Docker, Docker Compose              |
-| Docs         | OpenAPI / Swagger, Markdown         |
+| Docs         | Markdown (OpenAPI spec planned)     |
 | Testing      | PHPUnit/Pest (backend), Vitest/Jasmine (frontend) |
 
 ## Architecture
@@ -83,7 +83,8 @@ Request flow: Route → Controller → Request Validation → Service → Model 
 responses serialized through a consistent envelope.
 
 See `docs/architecture/` for the decision records, request flow, and layer
-conventions.
+conventions, and `docs/security/README.md` for the authentication and
+authorization model plus the production deployment checklist.
 
 ## Project Structure
 
@@ -96,6 +97,7 @@ nexora/
 │   ├── architecture/  # architecture + decision records
 │   ├── database/      # schema design notes
 │   ├── api/           # API contract notes
+│   ├── security/      # authn/authz model + production checklist
 │   ├── workflows/     # business workflow documentation
 │   └── screenshots/   # UI screenshots (populated later)
 │

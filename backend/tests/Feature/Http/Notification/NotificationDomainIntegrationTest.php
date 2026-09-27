@@ -84,7 +84,9 @@ class NotificationDomainIntegrationTest extends NotificationTestCase
             ->get();
 
         $this->assertCount(1, $notifications);
-        $this->assertSame(['ticket_id' => $ticket->id, 'ticket_number' => $ticket->ticket_number, 'status' => Ticket::STATUS_IN_PROGRESS], $notifications[0]->data);
+        // The payload column is jsonb, and PostgreSQL does not preserve JSON
+        // object key order, so multi-key payloads are compared order-blind.
+        $this->assertEquals(['ticket_id' => $ticket->id, 'ticket_number' => $ticket->ticket_number, 'status' => Ticket::STATUS_IN_PROGRESS], $notifications[0]->data);
     }
 
     public function test_same_status_update_is_a_no_op_and_does_not_notify(): void

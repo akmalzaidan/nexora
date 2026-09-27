@@ -1,0 +1,396 @@
+<div class="nx-main-page">
+
+  <!-- ═══ Page header ══════════════════════════════════════════════════ -->
+  <header class="nx-page-header">
+    <div class="nx-page-heading">
+      <h1 class="nx-page-title">Audit Logs</h1>
+      <p class="nx-page-sub">Governance trail for changes across NEXORA</p>
+    </div>
+    <div class="nx-page-actions">
+      <app-nx-button variant="ghost" size="sm" class="nx-cmd-trigger" (nxClick)="openPalette()" aria-label="Open command palette">
+        <span class="nx-cmd-hint">⌘K</span>
+      </app-nx-button>
+
+      <app-nx-button variant="ghost" size="sm" (nxClick)="refresh()" [disabled]="refreshing()" aria-label="Refresh audit logs">
+        <ion-icon name="refresh-outline" aria-hidden="true"></ion-icon>
+        {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+      </app-nx-button>
+    </div>
+  </header>
+
+  <!-- ═══ Read-only notice + stale banner ═══════════════════════════════ -->
+  <div class="nx-banner-row" aria-label="Audit workspace notices">
+    <span class="nx-readonly-note">
+      <ion-icon name="lock-closed-outline" aria-hidden="true"></ion-icon>
+      Read-only governance history
+    </span>
+    @if (stale()) {
+      <span class="nx-stale-banner" role="status">
+        <ion-icon name="warning-outline" aria-hidden="true"></ion-icon>
+        Showing previously loaded events. Refresh failed.
+        <button type="button" class="nx-stale-retry" (click)="refresh()">Retry</button>
+      </span>
+    }
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════════════════
+       WORKSPACE — master / detail (desktop), list → detail (mobile)
+       ══════════════════════════════════════════════════════════════════════ -->
+  <div class="nx-workspace" [class.detail-open]="selectedId() !== null">
+
+    <!-- ─── Master panel ─────────────────────────────────────────────── -->
+    <section class="nx-master" aria-label="Audit events list panel">
+
+      <div class="nx-master-controls">
+        <div class="nx-filters-header">
+          <span class="nx-filters-title">Filters</span>
+          @if (activeFilterCount() > 0) {
+            <span class="nx-filter-count">Filters · {{ activeFilterCount() }}</span>
+            <button type="button" class="nx-clear-filters" (click)="clearFilters()">Clear</button>
+          }
+        </div>
+
+        <div class="nx-filters">
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-audit-actor">Actor</label>
+            <select
+              id="nx-audit-actor"
+              class="nx-select"
+              [value]="actorFilter()"
+              (change)="setActorFilter($any($event.target).value)"
+            >
+              <option value="">All actors</option>
+              @for (actor of actorOptions(); track actor.id) {
+                <option [value]="actor.id">{{ actor.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-audit-action">Action</label>
+            <select
+              id="nx-audit-action"
+              class="nx-select"
+              [value]="actionFilter()"
+              (change)="setActionFilter($any($event.target).value)"
+            >
+              <option value="">All actions</option>
+              @for (action of ACTIONS; track action) {
+                <option [value]="action">{{ humanize(action) }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-audit-type">Resource type</label>
+            <select
+              id="nx-audit-type"
+              class="nx-select"
+              [value]="resourceTypeFilter()"
+              (change)="setResourceTypeFilter($any($event.target).value)"
+            >
+              <option value="">All resources</option>
+              @for (type of RESOURCE_TYPES; track type) {
+                <option [value]="type">{{ humanize(type) }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="nx-filter-field">
+            <label class="nx-filter-label" for="nx-audit-rid">Resource ID</label>
+            <input
+              id="nx-audit-rid"
+              type="text"
+              class="nx-input"
+              inputmode="numeric"
+              placeholder="e.g. 42"
+              [value]="resourceIdFilter()"
+              (change)="setResourceIdFilter($any($event.target).value)"
+            />
+          </div>
+
+          <div class="nx-filter-field">
+            <span class="nx-filter-label">Date range</span>
+            <div class="nx-date-row">
+              <input
+                type="date"
+                class="nx-input"
+                aria-label="From date"
+                [value]="draftFrom()"
+                (change)="draftFrom.set($any($event.target).value)"
+              />
+              <span class="nx-date-sep" aria-hidden="true">–</span>
+              <input
+                type="date"
+                class="nx-input"
+                aria-label="To date"
+                [value]="draftTo()"
+                (change)="draftTo.set($any($event.target).value)"
+              />
+            </div>
+            @if (dateRangeError()) {
+              <span class="nx-date-error">{{ dateRangeError() }}</span>
+            }
+            <div class="nx-date-actions">
+              <button type="button" class="nx-date-apply" (click)="applyDateRange()" [disabled]="!!dateRangeError()">Apply</button>
+              <button type="button" class="nx-clear-filters" (click)="clearDateRange()">Clear</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Master list -->
+      <div class="nx-master-list">
+        @if (loading()) {
+          <div class="nx-skeleton-rows" aria-hidden="true">
+            @for (row of skeletonRows; track row) {
+              <div class="nx-skeleton-row">
+                <span class="nx-skeleton-name"></span>
+                <span class="nx-skeleton-badge"></span>
+              </div>
+            }
+          </div>
+        } @else if (error()) {
+          @if (denied()) {
+            <app-nx-empty-state
+              icon="shield-outline"
+              [title]="'ACCESS RESTRICTED'"
+              [description]="'You do not have access to governance audit logs.'"
+            >
+              <app-nx-button nx-empty-action variant="secondary" size="sm" (nxClick)="openPalette()">Return to Command</app-nx-button>
+            </app-nx-empty-state>
+          } @else {
+            <app-nx-error-state
+              icon="cloud-offline-outline"
+              [title]="'Unable to load audit logs'"
+              [message]="error()!.message"
+              [showRetry]="true"
+              (nxRetry)="loadLogs(true)"
+            ></app-nx-error-state>
+          }
+        } @else if (logs().length === 0) {
+          <app-nx-empty-state
+            icon="receipt-outline"
+            [title]="activeFilterCount() > 0 ? 'No audit events match these filters.' : 'No audit events yet'"
+            [description]="activeFilterCount() > 0 ? 'Try adjusting or clearing the active filters.' : 'Governance activity will appear here as system changes occur.'"
+            [showActions]="activeFilterCount() > 0"
+          >
+            @if (activeFilterCount() > 0) {
+              <app-nx-button nx-empty-action variant="secondary" size="sm" (nxClick)="clearFilters()">Clear filters</app-nx-button>
+            }
+          </app-nx-empty-state>
+        } @else {
+          <ul class="nx-master-list-ul">
+            @for (log of logs(); track log.id) {
+              <li class="nx-master-li">
+                <button
+                  type="button"
+                  class="nx-item-row"
+                  [class.selected]="selectedId() === log.id"
+                  [attr.aria-current]="selectedId() === log.id ? 'true' : null"
+                  (click)="selectLog(log.id)"
+                >
+                  <span class="nx-row-line">
+                    <span class="nx-row-time nx-mono">{{ formatTime(log.created_at) }}</span>
+                    <span class="nx-row-action">{{ humanize(log.action) }}</span>
+                  </span>
+                  <span class="nx-row-line">
+                    <span class="nx-row-resource nx-mono">{{ humanize(log.resource.type) }}{{ log.resource.id !== null ? ' · #' + log.resource.id : '' }}</span>
+                    <span class="nx-row-actor">{{ log.actor?.name ?? 'Deleted user' }}</span>
+                  </span>
+                </button>
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      <!-- Pagination -->
+      @if (!loading() && !error() && logs().length > 0) {
+        <div class="nx-pagination">
+          <span class="nx-pagination-info" aria-live="polite">
+            {{ total().toLocaleString() }} event{{ total() === 1 ? '' : 's' }}
+          </span>
+          <div class="nx-pagination-controls">
+            <button
+              type="button"
+              class="nx-page-button"
+              [disabled]="currentPage() <= 1"
+              (click)="gotoPage(currentPage() - 1)"
+              aria-label="Previous page"
+            >
+              <ion-icon name="chevron-back" aria-hidden="true"></ion-icon>
+            </button>
+            <span class="nx-pagination-current">Page {{ currentPage() }} of {{ lastPage() }}</span>
+            <button
+              type="button"
+              class="nx-page-button"
+              [disabled]="currentPage() >= lastPage()"
+              (click)="gotoPage(currentPage() + 1)"
+              aria-label="Next page"
+            >
+              <ion-icon name="chevron-forward" aria-hidden="true"></ion-icon>
+            </button>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- ─── Detail panel ─────────────────────────────────────────────── -->
+    <section class="nx-detail" aria-label="Audit event detail panel">
+      <button type="button" class="nx-detail-back" (click)="clearSelection()">
+        <ion-icon name="arrow-back" aria-hidden="true"></ion-icon>
+        Back to list
+      </button>
+
+      <div class="nx-detail-scroll">
+        @if (selectedId() === null) {
+          <div class="nx-detail-empty">
+            <div class="nx-detail-empty-icon">
+              <ion-icon name="receipt-outline"></ion-icon>
+            </div>
+            <h3 class="nx-detail-empty-title">Select an audit event</h3>
+            <p class="nx-detail-empty-desc">Choose an event from the list to inspect who changed what, and when.</p>
+          </div>
+        } @else if (detailLoading()) {
+          <div class="nx-detail-skeleton" aria-hidden="true">
+            <span class="nx-skeleton-name nx-detail-skeleton-title"></span>
+            <span class="nx-skeleton-badge nx-detail-skeleton-block"></span>
+            <span class="nx-skeleton-name nx-detail-skeleton-block"></span>
+          </div>
+        } @else if (detailError()) {
+          <div class="nx-detail-center">
+            <app-nx-error-state
+              [title]="'Unable to load audit event'"
+              [message]="detailError()!.message"
+              [showRetry]="true"
+              (nxRetry)="loadDetail(selectedId()!)"
+            ></app-nx-error-state>
+          </div>
+        } @else if (selectedLog(); as log) {
+          <header class="nx-detail-header">
+            <div class="nx-detail-heading">
+              <span class="nx-row-meta">
+                <span class="nx-row-action nx-detail-action">{{ humanize(log.action) }}</span>
+                <span class="nx-row-sep" aria-hidden="true">·</span>
+                <span class="nx-row-time nx-mono">{{ formatTime(log.created_at) }}</span>
+              </span>
+              <h2 class="nx-detail-name">
+                {{ humanize(log.resource.type) }}{{ log.resource.id !== null ? ' · #' + log.resource.id : '' }}
+              </h2>
+              @if (log.description) {
+                <p class="nx-detail-desc">{{ log.description }}</p>
+              }
+            </div>
+            @if (detailTarget()) {
+              <div class="nx-detail-actions">
+                <app-nx-button variant="secondary" size="sm" (nxClick)="openRelated()">
+                  Open related record
+                </app-nx-button>
+              </div>
+            }
+          </header>
+
+          <div class="nx-detail-body">
+            <!-- Actor -->
+            <div class="nx-detail-section">
+              <span class="nx-filter-label">Actor</span>
+              <div class="nx-detail-fact">
+                @if (log.actor) {
+                  <span class="nx-field-value">{{ log.actor.name }}</span>
+                  <span class="nx-field-sub nx-mono">user · #{{ log.actor.id }}</span>
+                } @else {
+                  <span class="nx-field-value">Deleted user</span>
+                }
+              </div>
+            </div>
+
+            <!-- Resource -->
+            <div class="nx-detail-section">
+              <span class="nx-filter-label">Resource</span>
+              <div class="nx-detail-fact">
+                <span class="nx-field-value">{{ humanize(log.resource.type) }}</span>
+                @if (log.resource.id !== null) {
+                  <span class="nx-field-sub nx-mono">id · {{ log.resource.id }}</span>
+                }
+              </div>
+            </div>
+
+            <!-- Changed fields (two-sided diff) -->
+            @if (changedRows(); as rows) {
+              <div class="nx-detail-section">
+                <span class="nx-filter-label">Changed fields</span>
+                @if (rows.length === 0) {
+                  <p class="nx-detail-note">No field-level changes were recorded for this event.</p>
+                }
+                <div class="nx-diff-list">
+                  @for (row of rows; track row.field) {
+                    <div class="nx-diff-row">
+                      <span class="nx-diff-field">{{ row.field }}</span>
+                      <span class="nx-diff-values">
+                        <span class="nx-diff-old nx-mono">{{ row.old }}</span>
+                        <ion-icon class="nx-diff-arrow" name="arrow-forward" aria-hidden="true"></ion-icon>
+                        <span class="nx-diff-new nx-mono">{{ row.new }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Created values (no old side) -->
+            @if (createdValues(); as created) {
+              <div class="nx-detail-section">
+                <span class="nx-filter-label">Created values</span>
+                <div class="nx-diff-list">
+                  @for (entry of created; track entry.field) {
+                    <div class="nx-diff-row">
+                      <span class="nx-diff-field">{{ entry.field }}</span>
+                      <span class="nx-diff-values">
+                        <span class="nx-diff-new nx-mono">{{ entry.value }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Previous values (no new side; the resource may no longer exist) -->
+            @if (previousValues(); as previous) {
+              <div class="nx-detail-section">
+                <span class="nx-filter-label">Previous values</span>
+                <div class="nx-diff-list">
+                  @for (entry of previous; track entry.field) {
+                    <div class="nx-diff-row">
+                      <span class="nx-diff-field">{{ entry.field }}</span>
+                      <span class="nx-diff-values">
+                        <span class="nx-diff-old nx-mono">{{ entry.value }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            <!-- Technical metadata (compact; safe fields only) -->
+            <div class="nx-detail-section">
+              <span class="nx-filter-label">Metadata</span>
+              <div class="nx-meta-grid">
+                <span class="nx-meta-key">Event ID</span>
+                <span class="nx-meta-value nx-mono">{{ log.id }}</span>
+                @if (log.ip_address) {
+                  <span class="nx-meta-key">IP address</span>
+                  <span class="nx-meta-value nx-mono">{{ log.ip_address }}</span>
+                }
+                @if (log.user_agent) {
+                  <span class="nx-meta-key">User agent</span>
+                  <span class="nx-meta-value nx-mono nx-meta-ua">{{ log.user_agent }}</span>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+  </div>
+</div>

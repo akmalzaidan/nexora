@@ -66,6 +66,7 @@ Shell-protected routes wrap business pages:
                            ├ /people       → PeoplePage
                            ├ /locations    → LocationsPage
                            ├ /reports      → ReportsPage
+                           ├ /audit-logs   → AuditLogsPage
                            ├ /settings     → SettingsPage
                            └ /profile      → ProfilePage
 ```
@@ -75,6 +76,92 @@ All business pages are placeholders except the **Command Center / Operational In
 `/home` is the Command Center: it is intentionally **not** route-guarded by `view_dashboard` — every authenticated role lands here, and the page itself renders the Access Restricted state without requesting anything when the caller lacks the permission, so the shell and its navigation remain usable.
 
 `/reports` is lazy-loaded through `loadComponent` and guarded by `permissionGuard` with `data: { permission: 'view_reports' }`, so a user without the permission is redirected to `/unauthorized` before any report request is made.
+
+`/audit-logs` (Phase 20B) is guarded the same way with `data: { permission: 'view_audit_logs' }` — genuinely governance data, so unauthorized users never reach the page and never fire an audit request.
+
+## Audit Logs & Governance Workspace (Phase 20B)
+
+A read-only master/detail workspace over the immutable governance trail
+(`GET /audit-logs`, `GET /audit-logs/{id}` — Phase 20A backend contract).
+
+### Route & permission
+
+- Route: `/audit-logs` under shell protection, `canActivate: [permissionGuard]`,
+  `data: { permission: 'view_audit_logs' }`. No frontend-only permission was
+  introduced; the guard and the UI both use the backend permission slug.
+- A user without `view_audit_logs` is redirected to `/unauthorized` before any
+  audit API request fires. If a 403 arrives anyway (e.g. permission revoked
+  mid-session), the page renders **ACCESS RESTRICTED** with no further calls.
+- Sidebar: a **Governance** group with an **Audit Logs** child, permission-aware
+  via the existing `NavItem.permission` filter (hidden entirely for roles without
+  the permission).
+- Command palette: **View audit logs** navigation command carries
+  `permission: 'view_audit_logs'` and is filtered out for unauthorized users;
+  Ctrl/Cmd+K behavior is unchanged.
+
+### Files
+
+```text
+frontend/src/app/core/services/audit-log.service.ts        # typed client (list/get only) + labels, diff, navigation, error mapping
+frontend/src/app/core/services/audit-log.service.spec.ts   # 21 service tests (params, vocabularies, diffs, navigation, errors)
+frontend/src/app/pages/audit-logs/audit-logs.page.ts       # master/detail workspace component
+frontend/src/app/pages/audit-logs/audit-logs.page.html     # template (filters, diff, metadata, states)
+frontend/src/app/pages/audit-logs/audit-logs.page.scss     # styles (design tokens, responsive)
+frontend/src/app/pages/audit-logs/audit-logs.page.spec.ts  # 21 page tests incl. route authorization
+frontend/src/app/layout/sidebar/sidebar.component.ts       # Governance group added
+frontend/src/app/core/services/command-palette.service.ts  # View audit logs command added
+frontend/src/app/app.routes.ts                             # /audit-logs route added
+```
+
+### List / detail
+
+- Desktop (≥1024px): master-detail split — compact event rows (timestamp, action,
+  resource, actor) on the left, full event detail on the right.
+- Tablet (768–1023px): narrower master column, single-column filters.
+- Mobile (<768px): list → detail → back slide-in pattern (same as Notifications);
+  no permanent split view, no horizontal scrolling.
+- Selection is mirrored to `?selected=<id>` (deep-link/refresh safe), matching
+  the existing workspaces.
+
+### Filters & date range
+
+- Filters map 1:1 to the Phase 20A query contract: `actor_id` (select fed by the
+  existing users API — id + name only), `action`, `resource_type`, `resource_id`,
+  inclusive `from`/`to` calendar days.
+- Date bounds are all-or-nothing, `from <= to`, max 366 days (backend §20A
+  semantics); a draft range is applied explicitly via **Apply** and shows a
+  validation error instead of firing a doomed request.
+- Any filter change resets the page to 1. An active-filter count chip
+  ("Filters · N") with a **Clear** action appears only when filters are active.
+- Only defined, non-empty params are sent; `undefined`/`null`/`''` are dropped.
+
+### Immutable behavior & safe display
+
+- No create/edit/delete affordances exist anywhere in the UI; the page carries a
+  persistent **Read-only governance history** note. The service deliberately
+  exposes only `getAuditLogs()` / `getAuditLog()`.
+- Raw backend values are rendered verbatim (`status_changed` stays
+  `status_changed` internally); `humanizeAuditValue` is display-only and doubles
+  as the safe fallback for unknown future actions/resource types
+  ("policy_changed" → "Policy changed"), never throwing.
+- Before/after values render as a structured field-level diff
+  (`field: old → new`), never a raw JSON wall. One-sided events render as
+  **Created values** (no old side) or **Previous values** (no new side, without
+  implying the resource still exists — related-record navigation is suppressed
+  for `deleted` events).
+- A deleted/null actor renders as **Deleted user**; no replacement identity is
+  invented.
+- Related-record navigation (**Open related record**) is provided only for
+  verified mappings — `ticket → /requests`, `maintenance_request → /maintenance`,
+  `asset → /assets`, `item → /inventory`, each with `?selected=<id>`.
+  `asset_assignment` is deliberately unmapped (an assignment id is not an asset
+  id); unknown types show no navigation. Destinations enforce their own
+  backend authorization; the audit page never pre-fetches to test access.
+- Manual **Refresh** only (no polling/WebSocket/SSE); it re-fetches the current
+  list only, guards against duplicate in-flight calls, and on failure keeps the
+  last list with a subtle stale-data banner instead of blanking the workspace.
+- Theming uses the shared design tokens (dark/light/system preserved), Inter for
+  labels/body, JetBrains Mono for timestamps, ids, and technical values.
 
 ## Services
 

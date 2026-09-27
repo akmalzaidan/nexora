@@ -200,7 +200,7 @@ class ItemService
             ->where('item_id', $item->id)
             ->selectRaw('warehouse_id, SUM(CASE WHEN type = ? THEN quantity ELSE -quantity END) AS balance', [StockMovement::TYPE_STOCK_IN])
             ->groupBy('warehouse_id')
-            ->havingRaw('balance <> 0')
+            ->havingRaw('SUM(CASE WHEN type = ? THEN quantity ELSE -quantity END) <> 0', [StockMovement::TYPE_STOCK_IN])
             ->pluck('balance', 'warehouse_id');
 
         if ($rows->isEmpty()) {

@@ -325,8 +325,12 @@ class UserManagementService
     /**
      * Mirrors the RESTRICT foreign keys that reference users so we return a
      * clean 409 instead of letting the database raise an integrity error.
-     * nullOnDelete references (department manager, asset histories, audit
-     * logs, notifications) intentionally do not block deletion.
+     *
+     * `nullOnDelete` references (department manager, asset current holder,
+     * asset histories, audit logs) intentionally do not block deletion.
+     * `notifications.user_id` cascades, so deleting a user also removes their
+     * notification inbox — that is deliberate (an inbox is per-user session
+     * state, not history) and it never blocks deletion either.
      */
     private function hasBlockingReferences(User $user): bool
     {

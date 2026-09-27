@@ -17,13 +17,27 @@ return [
 
     'paths' => ['api/*', 'sanctum/csrf-cookie'],
 
-    'allowed_methods' => ['*'],
+    // The v1 API speaks exactly these verbs. Wildcards would also advertise
+    // PATCH/TRACE and any future verb, so the list is explicit (Phase 21A).
+    'allowed_methods' => ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 
     'allowed_origins' => explode(',', (string) env('CORS_ALLOWED_ORIGINS', 'http://localhost:8100,http://127.0.0.1:8100')),
 
     'allowed_origins_patterns' => [],
 
-    'allowed_headers' => ['*'],
+    // Explicit allowlist: Accept/Content-Type for the JSON envelope,
+    // Authorization for the Sanctum bearer token, plus the headers the
+    // sanctum/csrf-cookie path and XMLHttpRequest need. Never "*".
+    'allowed_headers' => [
+        'Accept',
+        'Accept-Language',
+        'Authorization',
+        'Content-Language',
+        'Content-Type',
+        'Origin',
+        'X-Requested-With',
+        'X-XSRF-TOKEN',
+    ],
 
     'exposed_headers' => [],
 

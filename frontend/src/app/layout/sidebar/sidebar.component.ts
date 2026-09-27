@@ -73,6 +73,14 @@ export class SidebarComponent {
       ],
     },
     {
+      label: 'Governance',
+      route: '/audit-logs',
+      icon: 'shield-outline',
+      children: [
+        { label: 'Audit Logs', route: '/audit-logs', icon: 'receipt-outline', permission: 'view_audit_logs' },
+      ],
+    },
+    {
       label: 'Settings',
       route: '/settings',
       icon: 'settings-outline',

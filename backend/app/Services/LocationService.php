@@ -34,7 +34,7 @@ class LocationService
         }
 
         $sort = in_array($filters['sort'] ?? 'name', self::SORTABLE_COLUMNS, true)
-            ? $filters['sort']
+            ? ($filters['sort'] ?? 'name')
             : 'name';
         $direction = ($filters['direction'] ?? 'asc') === 'desc' ? 'desc' : 'asc';
         $query->orderBy($sort, $direction);

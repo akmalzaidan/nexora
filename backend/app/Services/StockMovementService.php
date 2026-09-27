@@ -176,7 +176,7 @@ class StockMovementService
         $query = StockMovement::query()
             ->selectRaw("{$column}, COALESCE(SUM(CASE WHEN type = ? THEN quantity ELSE -quantity END), 0) AS balance", [StockMovement::TYPE_STOCK_IN])
             ->groupBy($column)
-            ->havingRaw('balance <> 0')
+            ->havingRaw('COALESCE(SUM(CASE WHEN type = ? THEN quantity ELSE -quantity END), 0) <> 0', [StockMovement::TYPE_STOCK_IN])
             ->orderByDesc('balance')
             ->orderBy($column);
 

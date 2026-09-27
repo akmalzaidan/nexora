@@ -1,11 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClient, provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
 import { AuthService } from '../services/auth.service';
 import { StorageService } from '../services/storage.service';
 import { authInterceptor } from './auth.interceptor';
+
+@Component({ selector: 'app-stub', standalone: true, template: '' })
+class StubComponent {}
 
 describe('authInterceptor', () => {
   let controller: HttpTestingController | null = null;
@@ -15,7 +19,13 @@ describe('authInterceptor', () => {
       providers: [
         provideHttpClient(withInterceptors([authInterceptor])),
         provideHttpClientTesting(),
-        provideRouter([]),
+        // A 401 on a protected endpoint sends AuthService.handleUnauthorized(),
+        // which navigates to `/login`. Registering the route keeps that
+        // navigation from rejecting with an unhandled NG04002.
+        provideRouter([
+          { path: 'login', component: StubComponent },
+          { path: 'register', component: StubComponent },
+        ]),
       ],
     });
     controller = TestBed.inject(HttpTestingController);

@@ -58,7 +58,7 @@ class AssetAssignmentService
         }
 
         $sort = in_array($filters['sort'] ?? 'assigned_at', self::SORTABLE_COLUMNS, true)
-            ? $filters['sort']
+            ? ($filters['sort'] ?? 'assigned_at')
             : 'assigned_at';
         $direction = ($filters['direction'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sort, $direction);

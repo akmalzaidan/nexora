@@ -9,7 +9,9 @@ use App\Models\Location;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class AssetQrApiTest extends TestCase
@@ -98,9 +100,10 @@ class AssetQrApiTest extends TestCase
 
     public function test_qr_metadata_does_not_expose_secrets(): void
     {
-        $this->actingAs($this->admin)->getJson("/api/v1/assets/{$this->asset->id}/qr")
-            ->assertOk()
-            ->assertJsonMissing(['password', 'remember_token', 'personal_access_token']);
+        $response = $this->actingAs($this->admin)->getJson("/api/v1/assets/{$this->asset->id}/qr");
+
+        $response->assertOk()->assertJsonMissing(['password', 'remember_token', 'personal_access_token']);
+        $this->assertSame([], $this->sensitiveJsonKeys($response->json()));
     }
 
     // ─── QR Lookup ─────────────────────────────────────────────────────
@@ -169,9 +172,10 @@ class AssetQrApiTest extends TestCase
 
     public function test_qr_lookup_does_not_expose_secrets(): void
     {
-        $this->actingAs($this->admin)->getJson("/api/v1/assets/qr/{$this->payload}")
-            ->assertOk()
-            ->assertJsonMissing(['password', 'remember_token', 'personal_access_token']);
+        $response = $this->actingAs($this->admin)->getJson("/api/v1/assets/qr/{$this->payload}");
+
+        $response->assertOk()->assertJsonMissing(['password', 'remember_token', 'personal_access_token']);
+        $this->assertSame([], $this->sensitiveJsonKeys($response->json()));
     }
 
     // ─── Asset Lifecycle Independence ──────────────────────────────────
@@ -249,19 +253,133 @@ class AssetQrApiTest extends TestCase
 
     // ─── Uniqueness ────────────────────────────────────────────────────
 
-    public function test_asset_code_is_unique(): void
+    public function test_asset_code_is_unique_in_the_database(): void
     {
         $this->assertDatabaseHas('assets', ['asset_code' => 'AST-QR-001']);
-        $this->expectNotToPerformAssertions();
+
+        // The unique index is the last line of defence: it holds even when a
+        // caller bypasses validation (raw insert, console, future endpoint).
+        $this->expectException(QueryException::class);
+
+        DB::table('assets')->insert([
+            'asset_category_id' => $this->asset->asset_category_id,
+            'asset_code' => 'AST-QR-001',
+            'name' => 'Duplicate Asset Code',
+            'status' => 'DRAFT',
+            'condition' => 'GOOD',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+    }
+
+    public function test_create_endpoint_rejects_a_duplicate_asset_code(): void
+    {
+        $adminRole = Role::where('slug', 'admin')->first();
+        $adminRole?->permissions()->syncWithoutDetaching([
+            Permission::where('slug', 'view_assets')->value('id'),
+            Permission::where('slug', 'manage_assets')->value('id'),
+        ]);
+
+        $this->actingAs($this->admin)->postJson('/api/v1/assets', [
+            'asset_category_id' => $this->asset->asset_category_id,
+            'asset_code' => 'AST-QR-001',
+            'name' => 'Duplicate Asset Code',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors('asset_code');
+
+        $this->assertDatabaseMissing('assets', ['name' => 'Duplicate Asset Code']);
+    }
+
+    public function test_update_endpoint_rejects_moving_onto_another_asset_code(): void
+    {
+        $adminRole = Role::where('slug', 'admin')->first();
+        $adminRole?->permissions()->syncWithoutDetaching([
+            Permission::where('slug', 'view_assets')->value('id'),
+            Permission::where('slug', 'manage_assets')->value('id'),
+        ]);
+
+        $other = Asset::factory()->create([
+            'asset_category_id' => $this->asset->asset_category_id,
+            'asset_code' => 'AST-QR-002',
+            'name' => 'Other QR Asset',
+            'status' => 'ACTIVE',
+        ]);
+
+        $this->actingAs($this->admin)->putJson("/api/v1/assets/{$this->asset->id}", [
+            'asset_code' => 'AST-QR-002',
+        ])
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonValidationErrors('asset_code');
+
+        $this->assertSame('AST-QR-001', $this->asset->fresh()->asset_code);
+        $this->assertSame('Other QR Asset', $other->fresh()->name);
     }
 
     // ─── Security ──────────────────────────────────────────────────────
 
+    /**
+     * QR endpoints must never carry credential material. The assertion walks
+     * the whole decoded payload, because `assertJsonMissing([...])` only fails
+     * when *every* listed key is present at once and would silently pass for a
+     * response leaking only one of them.
+     */
     public function test_qr_endpoints_never_expose_password_or_tokens(): void
     {
-        $this->actingAs($this->admin)->getJson("/api/v1/assets/{$this->asset->id}/qr");
-        $this->actingAs($this->admin)->getJson("/api/v1/assets/qr/{$this->payload}");
+        $responses = [
+            'metadata' => $this->actingAs($this->admin)->getJson("/api/v1/assets/{$this->asset->id}/qr"),
+            'lookup' => $this->actingAs($this->admin)->getJson("/api/v1/assets/qr/{$this->payload}"),
+        ];
 
-        $this->assertTrue(true);
+        foreach ($responses as $endpoint => $response) {
+            $response->assertOk();
+
+            $found = $this->sensitiveJsonKeys($response->json());
+
+            $this->assertSame(
+                [],
+                $found,
+                "The QR {$endpoint} response exposed sensitive keys: ".implode(', ', $found)
+            );
+        }
+    }
+
+    /**
+     * Recursively collects every key in a decoded JSON payload whose name
+     * matches a credential-bearing field.
+     *
+     * @param  array<array-key, mixed>  $payload
+     * @return array<int, string>
+     */
+    private function sensitiveJsonKeys(array $payload, array $forbidden = [
+        'password',
+        'password_hash',
+        'remember_token',
+        'personal_access_token',
+        'token',
+        'access_token',
+        'api_key',
+        'secret',
+        'authorization',
+    ], string $path = ''): array
+    {
+        $found = [];
+
+        foreach ($payload as $key => $value) {
+            $name = strtolower((string) $key);
+            $current = $path === '' ? $name : $path.'.'.$name;
+
+            if (in_array($name, $forbidden, true)) {
+                $found[] = $current;
+            }
+
+            if (is_array($value)) {
+                $found = [...$found, ...$this->sensitiveJsonKeys($value, $forbidden, $current)];
+            }
+        }
+
+        return $found;
     }
 }

@@ -76,6 +76,7 @@ export class CommandPaletteService {
       { id: 'nav-people', label: 'Go to People', hint: '', group: 'Navigation', permission: 'view_users', action: () => navigate('/people') },
       { id: 'nav-locations', label: 'Go to Locations', hint: '', group: 'Navigation', permission: 'view_locations', action: () => navigate('/locations') },
       { id: 'nav-reports', label: 'View reports', hint: '', group: 'Navigation', permission: 'view_reports', action: () => navigate('/reports') },
+      { id: 'nav-audit-logs', label: 'View audit logs', hint: '', group: 'Navigation', permission: 'view_audit_logs', action: () => navigate('/audit-logs') },
       { id: 'nav-settings', label: 'Go to Settings', hint: '', group: 'Navigation', action: () => navigate('/settings') },
 
       // Asset Operations (placeholders)

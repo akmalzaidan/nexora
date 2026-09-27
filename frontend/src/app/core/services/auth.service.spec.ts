@@ -1,11 +1,15 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpClientTestingModule, HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { Component } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { AuthService, isSafeInternalUrl, mapAuthError } from './auth.service';
 import { StorageService } from './storage.service';
+
+@Component({ selector: 'app-stub', standalone: true, template: '' })
+class StubComponent {}
 
 function flushSession(controller: HttpTestingController, token: string, user: Record<string, unknown>): void {
   const req = controller.expectOne('/api/v1/auth/login');
@@ -25,7 +29,15 @@ describe('AuthService', () => {
         AuthService,
         provideHttpClient(),
         provideHttpClientTesting(),
-        provideRouter([]),
+        // `handleUnauthorized()` navigates to `/login`. With an empty route
+        // table that navigation rejects with NG04002 and the rejection escapes
+        // as an unhandled promise, so the routes the service actually targets
+        // have to exist in the harness.
+        provideRouter([
+          { path: 'login', component: StubComponent },
+          { path: 'register', component: StubComponent },
+          { path: 'home', component: StubComponent },
+        ]),
       ],
     });
     service = TestBed.inject(AuthService);

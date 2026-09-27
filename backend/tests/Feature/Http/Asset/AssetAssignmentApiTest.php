@@ -582,6 +582,11 @@ class AssetAssignmentApiTest extends TestCase
 
     public function test_create_assignment_with_soft_deleted_asset_fails(): void
     {
+        // Eloquent's SoftDeletingScope already excludes trashed assets, so the
+        // locked lookup in AssetAssignmentService::create resolves nothing and
+        // the request 404s. Asserted on the side effects too: a 404 that still
+        // wrote an assignment row, moved the asset holder or logged history
+        // would be a real integrity bug.
         $this->asset->delete();
 
         $response = $this->actingAs($this->admin)->postJson('/api/v1/asset-assignments', [
@@ -589,7 +594,18 @@ class AssetAssignmentApiTest extends TestCase
             'user_id' => $this->assignee->id,
         ]);
 
-        $response->assertNotFound();
+        $response->assertNotFound()
+            ->assertJsonPath('success', false);
+
+        $this->assertDatabaseMissing('asset_assignments', [
+            'asset_id' => $this->asset->id,
+            'user_id' => $this->assignee->id,
+        ]);
+
+        $this->assertNull($this->asset->fresh()->current_user_id);
+        $this->assertNull(AssetHistory::where('asset_id', $this->asset->id)
+            ->where('action', 'ASSIGNED')
+            ->first());
     }
 
     public function test_create_assignment_with_already_active_assignment_fails(): void

@@ -73,6 +73,23 @@ Both live in `src/app/core/guards`:
   `password_confirmation`), starts a session immediately.
 - `src/app/pages/profile` — shows `auth.user()`, `updateUser()` patch, logout.
 
+## Server-side session invalidation
+Tokens are Sanctum personal access tokens and do not expire, so "log this user
+out" cannot mean "wait for the token". Two server-side rules cover it:
+
+- **Deactivation is immediate.** `App\Http\Middleware\Authenticate` re-checks
+  `is_active` on every authenticated request. A token minted before the account
+  was deactivated returns the ordinary `401 Unauthenticated.` envelope and the
+  token is deleted, so access ends on the next request and reactivating the
+  account does not bring the old session back. The frontend needs no special
+  handling: the interceptor already tears the session down on any protected
+  `/api/` 401, so a deactivated user is returned to `/login` on their next
+  click.
+- **Logout revokes only the calling token.** Other sessions stay signed in.
+
+The model behind all of this, plus the production checklist, is in
+[`docs/security/README.md`](../security/README.md).
+
 ## Redirect etiquette
 Public endpoints `/login` and `/register` may still return 401/422 (validation) and
 must NOT clear the session. The interceptor treats those as ordinary responses; only
