@@ -1,0 +1,103 @@
+# NEXORA — Render Free Web Service (Blueprint)
+# ---------------------------------------------------------------------------
+# Infrastructure-as-code for the Laravel API only. Neon is created by hand in
+# the Neon console, so its credentials are prompted for (`sync: false`) rather
+# than declared here. No Render Postgres and no Key Value/Redis instance is
+# declared on purpose: the app runs entirely on PostgreSQL (database queue,
+# cache and session drivers), which keeps the whole stack at Rp0.
+#
+# Setup:
+#   1. Create a Neon Free PostgreSQL project and note the connection details.
+#   2. Apply this Blueprint (Render Dashboard -> New -> Blueprint).
+#   3. Fill in every `sync: false` value it prompts for.
+#   4. Deploy, then run the migrations LOCALLY against Neon — Render Free has
+#      no shell and no one-off job runner. See docs/deployment/README.md.
+#
+# `disk` is intentionally absent: Render Free web services cannot attach a
+# persistent disk, and NEXORA keeps all durable state in PostgreSQL.
+# ---------------------------------------------------------------------------
+
+services:
+  - type: web
+    name: nexora-api
+    runtime: docker
+    plan: free
+    region: oregon
+    # The repository is a monorepo; the API is the only part Render builds.
+    rootDir: backend
+    # Both paths are relative to the REPO ROOT, not to rootDir.
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/health
+    # CMD comes from the Dockerfile, which rebinds Apache to $PORT at start.
+    envVars:
+      - key: APP_NAME
+        value: NEXORA API
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false
+        description: "php artisan key:generate --show"
+      - key: APP_URL
+        sync: false
+        description: "https://<service>.onrender.com"
+
+      # --- Neon PostgreSQL ---
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        sync: false
+        description: "Neon host, WITHOUT the -pooler suffix (see README)"
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        sync: false
+        description: "Neon database name"
+      - key: DB_USERNAME
+        sync: false
+        description: "Neon username"
+      - key: DB_PASSWORD
+        sync: false
+        description: "Neon password"
+      # Neon only accepts TLS. The direct endpoint is used rather than the
+      # pooler because the database session/cache/queue drivers hold state
+      # that PgBouncer's transaction mode would discard between statements.
+      - key: DB_SSLMODE
+        value: require
+
+      # --- Storage / runtime drivers (all PostgreSQL, no Redis) ---
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: BROADCAST_CONNECTION
+        value: log
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: LOG_CHANNEL
+        value: stack
+      - key: LOG_STACK
+        value: single
+      - key: LOG_LEVEL
+        value: info
+
+      # --- CORS: the deployed frontend origin(s), comma separated ---
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+        description: "https://<project>.pages.dev"
+
+      # --- Audit-log client IPs behind the Render edge. Leave unset to trust
+      #     nothing (a client can otherwise forge X-Forwarded-For). ---
+      - key: TRUSTED_PROXIES
+        sync: false
+        description: "Render proxy CIDRs, or `*` to accept the trade-off"
+
+      # --- NEXORA public API health metadata ---
+      - key: NEXORA_NAME
+        value: NEXORA
+      - key: APP_VERSION
+        value: "1.0.0"

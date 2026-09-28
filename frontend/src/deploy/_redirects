@@ -1,0 +1,11 @@
+# Cloudflare Pages - SPA client-side routing fallback.
+#
+# Angular routes every path on the client, so a deep link or a browser refresh
+# on e.g. /assets/42 asks the edge for a file that does not exist. This rewrite
+# returns index.html with a 200 so the Angular router can take over.
+#
+# Cloudflare Pages `_redirects` proxying is deliberately NOT used here: it only
+# supports relative URLs on the Pages site itself and cannot proxy to an
+# external host. The API therefore lives on its own origin and the browser
+# calls it directly, permitted by CORS_ALLOWED_ORIGINS on the API.
+/*    /index.html   200

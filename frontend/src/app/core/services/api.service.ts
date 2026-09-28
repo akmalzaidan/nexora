@@ -1,12 +1,20 @@
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, lastValueFrom } from 'rxjs';
+import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 /**
  * ApiService is the centralized HTTP client for the NEXORA frontend.
  *
  * All API calls go through this service to ensure consistent
- * base URL (`/api/v1`) and error handling.
+ * base URL (`environment.apiUrl`) and error handling.
+ *
+ * The deployed frontend (Cloudflare Pages) and the API (Render) are separate
+ * origins, so `environment.prod.ts` carries the absolute API base URL. It is
+ * injected at build time from `NEXORA_API_URL` and defaults to the
+ * same-origin `/api/v1`, which keeps `localhost`, `127.0.0.1` and `:8000`
+ * out of the production bundle. Cross-origin requests are permitted by
+ * `CORS_ALLOWED_ORIGINS` on the API.
  *
  * Response envelope:
  *   Success: { success: true, message: string, data: T }
@@ -15,7 +23,7 @@ import { Observable, lastValueFrom } from 'rxjs';
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = '/api/v1';
+  private readonly baseUrl = environment.apiUrl;
 
   /**
    * Perform a GET request.

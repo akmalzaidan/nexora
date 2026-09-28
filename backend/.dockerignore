@@ -1,0 +1,65 @@
+# ---------------------------------------------------------------------------
+# NEXORA API - build context exclusions.
+#
+# Nothing here may leak a credential into an image layer. `backend/.env` is
+# gitignored and is the single most important entry: Render injects every
+# value as a runtime environment variable instead.
+# ---------------------------------------------------------------------------
+
+# --- secrets ---------------------------------------------------------------
+.env
+.env.*
+.env.backup
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# --- build artefacts produced in a previous run ----------------------------
+/vendor/
+node_modules/
+/storage/logs/*.log
+/storage/framework/cache/data/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/app/public/*
+/bootstrap/cache/*.php
+/public/hot
+.phpunit.result.cache
+.phpunit.cache/
+.php-cs-fixer.cache
+
+# --- local databases, dumps and scratch data -------------------------------
+*.sqlite
+*.sqlite3
+*.db
+database/*.sqlite
+database/*.sqlite3
+/database/*.db
+*.dump
+*.sql
+*.sql.gz
+*.tar
+*.tar.gz
+/tmp/
+/tmp-*
+
+# --- tests and tooling -----------------------------------------------------
+/tests/
+/phpunit.xml
+/phpunit.xml.dist
+/pint.json
+/README.md
+/CLAUDE.md
+/AGENTS.md
+
+# --- VCS, editor and CI ---------------------------------------------------
+.git/
+.gitignore
+.gitattributes
+.github/
+.gitlab-ci.yml
+.idea/
+.vscode/
+.editorconfig
